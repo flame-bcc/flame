@@ -1,0 +1,1940 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/flame/images/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/flame/images/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/flame/images/favicon-16x16.png">
+  <link rel="mask-icon" href="/flame/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/flame/css/main.css">
+
+
+<link rel="stylesheet" href="/flame/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"flame-bcc.github.io","root":"/flame/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","width":260,"display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"default"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":true,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":true,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.json"};
+  </script>
+
+  <meta name="description" content="java之并发编程  挑战  原理  JMM  Unsafe API  Memory Barriers    应用  Threads and Locks Package java.util.concurrent">
+<meta property="og:type" content="article">
+<meta property="og:title" content="java concurrency">
+<meta property="og:url" content="https://flame-bcc.github.io/flame/2021/12/01/java/java-concurrency/index.html">
+<meta property="og:site_name" content="flame">
+<meta property="og:description" content="java之并发编程  挑战  原理  JMM  Unsafe API  Memory Barriers    应用  Threads and Locks Package java.util.concurrent">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://flame-bcc.github.io/flame/images/java/concurrency/java-thread-status-migration-graph.png">
+<meta property="og:image" content="https://flame-bcc.github.io/flame/images/java/concurrency/java-thread-status-migration.png">
+<meta property="og:image" content="https://flame-bcc.github.io/flame/images/java/concurrency/java-thread-interupt-migration.png">
+<meta property="og:image" content="https://flame-bcc.github.io/flame/images/java/java-concurrency-pattern-outline.png">
+<meta property="article:published_time" content="2021-12-01T14:59:42.000Z">
+<meta property="article:modified_time" content="2022-07-16T09:47:47.901Z">
+<meta property="article:author" content="flame">
+<meta property="article:tag" content="java">
+<meta property="article:tag" content="concurrency">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://flame-bcc.github.io/flame/images/java/concurrency/java-thread-status-migration-graph.png">
+
+<link rel="canonical" href="https://flame-bcc.github.io/flame/2021/12/01/java/java-concurrency/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>java concurrency | flame</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/flame/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">flame</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">路漫漫其修远兮 吾将上下而求索</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/flame/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/flame/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/flame/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/flame/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/flame/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/agui93" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://flame-bcc.github.io/flame/2021/12/01/java/java-concurrency/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/flame/images/avatar.jpeg">
+      <meta itemprop="name" content="flame">
+      <meta itemprop="description" content="读书百遍 其义自见">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="flame">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          java concurrency
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2021-12-01 22:59:42" itemprop="dateCreated datePublished" datetime="2021-12-01T22:59:42+08:00">2021-12-01</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-07-16 17:47:47" itemprop="dateModified" datetime="2022-07-16T17:47:47+08:00">2022-07-16</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/flame/categories/java/" itemprop="url" rel="index"><span itemprop="name">java</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/flame/categories/java/concurrency/" itemprop="url" rel="index"><span itemprop="name">concurrency</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><strong>java之并发编程</strong></p>
+<ul>
+<li><p>挑战</p>
+</li>
+<li><p>原理</p>
+<ul>
+<li><p>JMM</p>
+</li>
+<li><p>Unsafe API</p>
+</li>
+<li><p>Memory Barriers</p>
+</li>
+</ul>
+</li>
+<li><p>应用</p>
+<ul>
+<li>Threads and Locks</li>
+<li>Package java.util.concurrent</li>
+</ul>
+</li>
+</ul>
+<span id="more"></span>
+
+
+
+
+
+
+
+<h1 id="Challenges"><a href="#Challenges" class="headerlink" title="Challenges"></a>Challenges</h1><p>并发编程的挑战:</p>
+<ul>
+<li>上下文切换的开销</li>
+<li>线程创建和销毁的开销</li>
+<li>死锁</li>
+<li>软硬件资源限制</li>
+</ul>
+<p><strong>如何减少上下文切换</strong>       </p>
+<ul>
+<li><strong>无锁并发编程</strong>：多线程竞争锁时，会引起上下文切换，可以用一些办法来避免使用锁</li>
+<li><strong>CAS算法</strong>：java的Atomic包使用CAS算法来更新数据，而不需要加锁。</li>
+<li><strong>使用最少线程</strong>: 避免创建不需要的线程，比如任务很少，但是创建了很多线程来处理，这样会造成大量线程都处于等待状态</li>
+<li><strong>协程</strong>: 在单线程里实现多任务的调度，并在单线程里维持多个任务间的切换</li>
+</ul>
+<p>上下文切换的衡量</p>
+<ul>
+<li>使用Lmbench3可以测量上下文切换的时长。</li>
+<li>使用vmstat可以测量上下文切换的次数。</li>
+</ul>
+<p><strong>死锁</strong></p>
+<ul>
+<li><p><strong>后果</strong>:一旦产生死锁，就会造成系统功能不可用.</p>
+</li>
+<li><p><strong>定位</strong>:一旦出现死锁，业务不能继续提供服务了，通过dump线程查看到底是哪个线程出现了问题。</p>
+</li>
+</ul>
+<p><strong>避免死锁</strong>:                </p>
+<ul>
+<li>避免一个线程同时获取多个锁。</li>
+<li>避免一个线程在锁内同时占用多个资源，尽量保证每个锁只占用一个资源。</li>
+<li>尝试使用定时锁，使用lock.tryLock（timeout）来替代使用内部锁机制。</li>
+<li>对于数据库锁，加锁和解锁必须在一个数据库连接里，否则会出现解锁失败的情况。</li>
+</ul>
+<p><strong>资源限制</strong></p>
+<p><strong>什么是资源限制</strong>       </p>
+<p>资源限制是指在进行并发编程时，程序的执行速度受限于计算机硬件资源或软件资源。        </p>
+<p>例如:网络带宽 硬盘读写速度 CPU处理速度 数据库连接数  socket连接数等       </p>
+<p><strong>资源限制引发的并发问题</strong>        </p>
+<p>在并发编程中，将代码执行速度加快的原则是将代码中串行执行的部分变成并发执行。</p>
+<p>但是如果将某段串行的代码并发执行，因为受限于资源，仍然在串行执行，这时候程序不仅不会加快执行，反而会更慢，因为增加了上下文切换和资源调度的时间。</p>
+<p><strong>如何解决资源限制的问题</strong>       </p>
+<p>对于硬件资源限制，可以考虑使用集群并行执行程序。       </p>
+<p>对于软件资源限制，可以考虑使用资源池复用资源。比如使用连接池将数据库和Socket连接复用，或者在调用对方webservice接口获取数据时，只建立一个连接。        </p>
+<p><strong>在资源限制情况下进行并发编程</strong>        </p>
+<p>根据不同的资源限制调整程序的并发度</p>
+<h1 id="JMM"><a href="#JMM" class="headerlink" title="JMM"></a>JMM</h1><p><strong>重排序(reorder)</strong></p>
+<p>​	 编译机和java虚拟机通过改变程序的处理顺序来优化程序，在多线程程序里，有时会发生明显由重排序引发的问题。</p>
+<hr>
+<p><strong>可见性 (visibility)</strong></p>
+<p>​       当一个线程向一个共享变量写入某个值，这个值对另一个线程是否可见</p>
+<hr>
+<p><strong>共享内存(shared memory)</strong></p>
+<p>​	共享内存是所有线程共享的存储空间，也就是堆内存。在JMM中,只有可以被多个线程访问的共享内存才会出问题。</p>
+<blockquote>
+<p>Memory that can be shared between threads is called shared memory or heap memory.</p>
+</blockquote>
+<p>​     所有实例域、静态域和数组元素都存储在堆内存，线程间共享。</p>
+<p>​     局部变量,方法参数和异常处理器参数不会在线程之间共享，没有内存可见性问题，不受内存模型影响。</p>
+<hr>
+<p><strong>synchronized关键字</strong></p>
+<p>​	synchronized具有“线程的互斥处理”和“同步处理”的两种功能</p>
+<p>​	互斥: 线程在synchronized开始时获取锁(lock)，在synchronized终止时释放锁(unlock)</p>
+<p>​    同步: JMM保证某个线程在进行unlock操作前进行的所有写入操作对进行lock操作的线程都是可见的</p>
+<hr>
+<p><strong>volatile关键字</strong></p>
+<p>​	volatile具有“同步处理”和”对long和double原子处理”的两种功能</p>
+<p>​	同步: 某个线程对volatile字段进行的写操作的结果对其他线程立即可见</p>
+<p>​    原子:  java规范无法确保对long和double的赋值操作的原子性，如果long和double的字段是volatile字段，可以确保赋值操作的原子性</p>
+<p>向volatile字段写入的值如果对线程B可见，那么之前写入的所有值就都是可见的。</p>
+<p>volatile不会进行线程的互斥处理。</p>
+<hr>
+<p><strong>happens-before</strong></p>
+<p>JMM通过happens-before关系向程序员提供跨线程的内存可见性保证。</p>
+<p>例如，A线程的写操作a与B线程的读操作b之间存在happensbefore关系，尽管a操作和b操作在不同的线程中执行，但JMM向程序员保证a操作将对b操作可见。</p>
+<p><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/specs/jls/se7/html/jls-17.html#jls-17.4.5">Happens-Before Relationship</a></p>
+<blockquote>
+<p>Each action in a thread happens before every subsequent action in that thread. </p>
+<p>An unlock on a monitor happens before every subsequent lock on that monitor. </p>
+<p>A write to a volatile field happens before every subsequent read of that volatile. </p>
+<p>A call to start() on a thread happens before any actions in the started thread. </p>
+<p>All actions in a thread happen before any other thread successfully returns from a join() on that thread.</p>
+<p>If an action a happens before an action b, and b happens before an action c, then a happens before c.</p>
+</blockquote>
+<hr>
+<p><strong>final字段</strong></p>
+<p>​    JMM可以确保构造函数处理结束时final字段的值被正确初始化，对其他线程是可见的. （不要从构造函数中泄露this）</p>
+<hr>
+<p><strong>Double-Checked Locking</strong></p>
+<p>​	<a target="_blank" rel="noopener" href="http://www.cs.umd.edu/~pugh/java/memoryModel/DoubleCheckedLocking.html">The “Double-Checked Locking is Broken” Declaration</a> </p>
+<ul>
+<li><p>基于volatile的解决方案</p>
+</li>
+<li><p>基于final和构造函数的解决方案</p>
+</li>
+<li><p>Initialization On Demand Holder (原因: 类的初始化时线程安全的)</p>
+</li>
+</ul>
+<hr>
+<p><strong>操作总结</strong></p>
+<p>JMM定义的操作，归纳起来主要有:</p>
+<ul>
+<li>normal read 操作</li>
+<li>normal write 操作</li>
+<li>volatile read  操作</li>
+<li>volatile write 操作</li>
+<li>lock 操作</li>
+<li>unlock 操作</li>
+<li>线程启动操作</li>
+<li>线程终止操作</li>
+<li>线程启动后的第一个操作</li>
+<li>线程终止前的最后一个操作</li>
+</ul>
+<hr>
+<p><strong>Reference</strong></p>
+<blockquote>
+<p><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/specs/jls/se7/html/jls-17.html#jls-17.4">Threads and Locks, Thread Model</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.jcp.org/en/jsr/detail?id=133">JSR133</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cs.umd.edu/~pugh/java/memoryModel/">Doug Lea  Blogs</a></p>
+<p><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/specs/jls/se7/html/jls-17.html">jls-se7</a></p>
+<p>java并发编程的艺术:第3章</p>
+<p><a target="_blank" rel="noopener" href="http://gee.cs.oswego.edu/dl/jmm/cookbook.html">The JSR-133 Cookbook for Compiler Writers</a></p>
+</blockquote>
+<h1 id="Unsafe-API"><a href="#Unsafe-API" class="headerlink" title="Unsafe API"></a>Unsafe API</h1><h2 id="Method-Categories"><a href="#Method-Categories" class="headerlink" title="Method Categories"></a>Method Categories</h2><table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Mehtod</th>
+<th>Desc</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Info</strong></td>
+<td><code>addressSize</code> <br/> <code>pageSize</code><br/></td>
+<td>Just returns some low-level memory information.</td>
+</tr>
+<tr>
+<td><strong>Objects</strong></td>
+<td><code>allocateInstance</code>   <br/>  <code>objectFieldOffset</code><br/></td>
+<td>Provides methods for object and its fields manipulation.</td>
+</tr>
+<tr>
+<td><strong>Classes</strong></td>
+<td><code>staticFieldOffset</code><br/> <code>defineClass</code><br/> <code>defineAnonymousClass</code><br/> <code>ensureClassInitialized</code><br/></td>
+<td>Provides methods for classes and static fields manipulation</td>
+</tr>
+<tr>
+<td><strong>Arrays</strong></td>
+<td><code>arrayBaseOffset</code><br/> <code>arrayIndexScale</code><br/></td>
+<td>Arrays manipulation</td>
+</tr>
+<tr>
+<td><strong>Memory</strong></td>
+<td><code>allocateMemory</code><br/><code>copyMemory</code> <br/><code>freeMemory</code> <br/><code>reallocateMemory</code><br/><code>getAddress</code> <br/><code>getInt</code><br/><code>putInt</code> <br><code>getLong</code>  <br/><code>putLong</code>  <br/><code>getObject</code> <br/><code>putObject</code> <br/></td>
+<td>Direct memory access methods</td>
+</tr>
+<tr>
+<td><strong>CAS</strong></td>
+<td><code>compareAndSwapInt</code> <br/><code>compareAndSwapLong</code> <br/><code>compareAndSwapObject</code> <br/></td>
+<td>Compare And Swap</td>
+</tr>
+<tr>
+<td><strong>Synchronization</strong></td>
+<td><code>park</code> <br/><code>unpark</code> <br/></td>
+<td>Low level primitives for synchronization.</td>
+</tr>
+<tr>
+<td><strong>Synchronization</strong></td>
+<td><code>monitorEnter</code> <br/><code>tryMonitorEnter</code><br/><code>monitorExit</code> <br/></td>
+<td>Low level primitives for synchronization.</td>
+</tr>
+<tr>
+<td><strong>Synchronization</strong></td>
+<td><code>getIntVolatile</code> <br/><code>putIntVolatile</code>  <br/><code>getLongVolatile</code>  <br/><code>putLongVolatile</code>  <br/></td>
+<td>Low level primitives for synchronization.</td>
+</tr>
+<tr>
+<td><strong>Synchronization</strong></td>
+<td><code>putOrderedInt</code><br/><code>putOrderedLong</code><br/><code>putOrderedObject</code><br/></td>
+<td>Low level primitives for synchronization.</td>
+</tr>
+</tbody></table>
+<h2 id="Method-Details"><a href="#Method-Details" class="headerlink" title="Method Details"></a>Method Details</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br><span class="line">220</span><br><span class="line">221</span><br><span class="line">222</span><br><span class="line">223</span><br><span class="line">224</span><br><span class="line">225</span><br><span class="line">226</span><br><span class="line">227</span><br><span class="line">228</span><br><span class="line">229</span><br><span class="line">230</span><br><span class="line">231</span><br><span class="line">232</span><br><span class="line">233</span><br><span class="line">234</span><br><span class="line">235</span><br><span class="line">236</span><br><span class="line">237</span><br><span class="line">238</span><br><span class="line">239</span><br><span class="line">240</span><br><span class="line">241</span><br><span class="line">242</span><br><span class="line">243</span><br><span class="line">244</span><br><span class="line">245</span><br><span class="line">246</span><br><span class="line">247</span><br><span class="line">248</span><br><span class="line">249</span><br><span class="line">250</span><br><span class="line">251</span><br><span class="line">252</span><br><span class="line">253</span><br><span class="line">254</span><br><span class="line">255</span><br><span class="line">256</span><br><span class="line">257</span><br><span class="line">258</span><br><span class="line">259</span><br><span class="line">260</span><br><span class="line">261</span><br><span class="line">262</span><br><span class="line">263</span><br><span class="line">264</span><br><span class="line">265</span><br><span class="line">266</span><br><span class="line">267</span><br><span class="line">268</span><br><span class="line">269</span><br><span class="line">270</span><br><span class="line">271</span><br><span class="line">272</span><br><span class="line">273</span><br><span class="line">274</span><br><span class="line">275</span><br><span class="line">276</span><br><span class="line">277</span><br><span class="line">278</span><br><span class="line">279</span><br><span class="line">280</span><br><span class="line">281</span><br><span class="line">282</span><br><span class="line">283</span><br><span class="line">284</span><br><span class="line">285</span><br><span class="line">286</span><br><span class="line">287</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> sun.misc;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.lang.reflect.Field;</span><br><span class="line"></span><br><span class="line"><span class="comment">/***</span></span><br><span class="line"><span class="comment"> * This class should provide access to low-level operations and its</span></span><br><span class="line"><span class="comment"> * use should be limited to trusted code.  Fields can be accessed using</span></span><br><span class="line"><span class="comment"> * memory addresses, with undefined behaviour occurring if invalid memory</span></span><br><span class="line"><span class="comment"> * addresses are given.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> Tom Tromey (tromey@redhat.com)</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> Andrew John Hughes (gnu_andrew@member.fsf.org)</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Unsafe</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="comment">// Singleton class.</span></span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">static</span> <span class="type">Unsafe</span> <span class="variable">unsafe</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Unsafe</span>();</span><br><span class="line"></span><br><span class="line">  <span class="comment">/***</span></span><br><span class="line"><span class="comment">   * Private default constructor to prevent creation of an arbitrary number of instances.</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="keyword">private</span> <span class="title function_">Unsafe</span><span class="params">()</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/***</span></span><br><span class="line"><span class="comment">   * Retrieve the singleton instance of &lt;code&gt;Unsafe&lt;/code&gt;.  The calling</span></span><br><span class="line"><span class="comment">   * method should guard this instance from untrusted code, as it provides</span></span><br><span class="line"><span class="comment">   * access to low-level operations such as direct memory access.</span></span><br><span class="line"><span class="comment">   *</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@throws</span> SecurityException if a security manager exists and prevents</span></span><br><span class="line"><span class="comment">   *                           access to the system properties.</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> Unsafe <span class="title function_">getUnsafe</span><span class="params">()</span></span><br><span class="line">  &#123;</span><br><span class="line">    <span class="type">SecurityManager</span> <span class="variable">sm</span> <span class="operator">=</span> System.getSecurityManager();</span><br><span class="line">    <span class="keyword">if</span> (sm != <span class="literal">null</span>)</span><br><span class="line">      sm.checkPropertiesAccess();</span><br><span class="line">    <span class="keyword">return</span> unsafe;</span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">  <span class="comment">/***</span></span><br><span class="line"><span class="comment">   * Returns the memory address offset of the given static field.</span></span><br><span class="line"><span class="comment">   * The offset is merely used as a means to access a particular field</span></span><br><span class="line"><span class="comment">   * in the other methods of this class.  The value is unique to the given</span></span><br><span class="line"><span class="comment">   * field and the same value should be returned on each subsequent call.</span></span><br><span class="line"><span class="comment">   *</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> field the field whose offset should be returned.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@return</span> the offset of the given field.</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">native</span> <span class="type">long</span> <span class="title function_">objectFieldOffset</span><span class="params">(Field field)</span>;</span><br><span class="line"></span><br><span class="line">  </span><br><span class="line">  <span class="comment">/***</span></span><br><span class="line"><span class="comment">   * Compares the value of the integer field at the specified offset</span></span><br><span class="line"><span class="comment">   * in the supplied object with the given expected value, and updates</span></span><br><span class="line"><span class="comment">   * it if they match.  The operation of this method should be atomic,</span></span><br><span class="line"><span class="comment">   * thus providing an uninterruptible way of updating an integer field.</span></span><br><span class="line"><span class="comment">   *</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> obj the object containing the field to modify.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> offset the offset of the integer field within &lt;code&gt;obj&lt;/code&gt;.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> expect the expected value of the field.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> update the new value of the field if it equals &lt;code&gt;expect&lt;/code&gt;.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@return</span> true if the field was changed.</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">native</span> <span class="type">boolean</span> <span class="title function_">compareAndSwapInt</span><span class="params">(Object obj, <span class="type">long</span> offset, <span class="type">int</span> expect, <span class="type">int</span> update)</span>;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/***</span></span><br><span class="line"><span class="comment">   * Compares the value of the long field at the specified offset</span></span><br><span class="line"><span class="comment">   * in the supplied object with the given expected value, and updates</span></span><br><span class="line"><span class="comment">   * it if they match.  The operation of this method should be atomic,</span></span><br><span class="line"><span class="comment">   * thus providing an uninterruptible way of updating a long field.</span></span><br><span class="line"><span class="comment">   *</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> obj the object containing the field to modify.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> offset the offset of the long field within &lt;code&gt;obj&lt;/code&gt;.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> expect the expected value of the field.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> update the new value of the field if it equals &lt;code&gt;expect&lt;/code&gt;.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@return</span> true if the field was changed.</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">native</span> <span class="type">boolean</span> <span class="title function_">compareAndSwapLong</span><span class="params">(Object obj, <span class="type">long</span> offset, <span class="type">long</span> expect, <span class="type">long</span> update)</span>;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/***</span></span><br><span class="line"><span class="comment">   * Compares the value of the object field at the specified offset</span></span><br><span class="line"><span class="comment">   * in the supplied object with the given expected value, and updates</span></span><br><span class="line"><span class="comment">   * it if they match.  The operation of this method should be atomic,</span></span><br><span class="line"><span class="comment">   * thus providing an uninterruptible way of updating an object field.</span></span><br><span class="line"><span class="comment">   *</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> obj the object containing the field to modify.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> offset the offset of the object field within &lt;code&gt;obj&lt;/code&gt;.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> expect the expected value of the field.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> update the new value of the field if it equals &lt;code&gt;expect&lt;/code&gt;.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@return</span> true if the field was changed.</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">native</span> <span class="type">boolean</span> <span class="title function_">compareAndSwapObject</span><span class="params">(Object obj, <span class="type">long</span> offset, Object expect, Object update)</span>;</span><br><span class="line"></span><br><span class="line">  </span><br><span class="line">  <span class="comment">/***</span></span><br><span class="line"><span class="comment">   * Sets the value of the integer field at the specified offset in the</span></span><br><span class="line"><span class="comment">   * supplied object to the given value.  This is an ordered or lazy</span></span><br><span class="line"><span class="comment">   * version of &lt;code&gt;putIntVolatile(Object,long,int)&lt;/code&gt;, which</span></span><br><span class="line"><span class="comment">   * doesn&#x27;t guarantee the immediate visibility of the change to other</span></span><br><span class="line"><span class="comment">   * threads.  It is only really useful where the integer field is</span></span><br><span class="line"><span class="comment">   * &lt;code&gt;volatile&lt;/code&gt;, and is thus expected to change unexpectedly.</span></span><br><span class="line"><span class="comment">   *</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> obj the object containing the field to modify.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> offset the offset of the integer field within &lt;code&gt;obj&lt;/code&gt;.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> value the new value of the field.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@see</span> #putIntVolatile(Object,long,int)</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">native</span> <span class="keyword">void</span> <span class="title function_">putOrderedInt</span><span class="params">(Object obj, <span class="type">long</span> offset, <span class="type">int</span> value)</span>;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/***</span></span><br><span class="line"><span class="comment">   * Sets the value of the long field at the specified offset in the</span></span><br><span class="line"><span class="comment">   * supplied object to the given value.  This is an ordered or lazy</span></span><br><span class="line"><span class="comment">   * version of &lt;code&gt;putLongVolatile(Object,long,long)&lt;/code&gt;, which</span></span><br><span class="line"><span class="comment">   * doesn&#x27;t guarantee the immediate visibility of the change to other</span></span><br><span class="line"><span class="comment">   * threads.  It is only really useful where the long field is</span></span><br><span class="line"><span class="comment">   * &lt;code&gt;volatile&lt;/code&gt;, and is thus expected to change unexpectedly.</span></span><br><span class="line"><span class="comment">   *</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> obj the object containing the field to modify.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> offset the offset of the long field within &lt;code&gt;obj&lt;/code&gt;.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> value the new value of the field.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@see</span> #putLongVolatile(Object,long,long)</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">native</span> <span class="keyword">void</span> <span class="title function_">putOrderedLong</span><span class="params">(Object obj, <span class="type">long</span> offset, <span class="type">long</span> value)</span>;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/***</span></span><br><span class="line"><span class="comment">   * Sets the value of the object field at the specified offset in the</span></span><br><span class="line"><span class="comment">   * supplied object to the given value.  This is an ordered or lazy</span></span><br><span class="line"><span class="comment">   * version of &lt;code&gt;putObjectVolatile(Object,long,Object)&lt;/code&gt;, which</span></span><br><span class="line"><span class="comment">   * doesn&#x27;t guarantee the immediate visibility of the change to other</span></span><br><span class="line"><span class="comment">   * threads.  It is only really useful where the object field is</span></span><br><span class="line"><span class="comment">   * &lt;code&gt;volatile&lt;/code&gt;, and is thus expected to change unexpectedly.</span></span><br><span class="line"><span class="comment">   *</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> obj the object containing the field to modify.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> offset the offset of the object field within &lt;code&gt;obj&lt;/code&gt;.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> value the new value of the field.</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">native</span> <span class="keyword">void</span> <span class="title function_">putOrderedObject</span><span class="params">(Object obj, <span class="type">long</span> offset, Object value)</span>;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/***</span></span><br><span class="line"><span class="comment">   * Sets the value of the integer field at the specified offset in the</span></span><br><span class="line"><span class="comment">   * supplied object to the given value, with volatile store semantics.</span></span><br><span class="line"><span class="comment">   *</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> obj the object containing the field to modify.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> offset the offset of the integer field within &lt;code&gt;obj&lt;/code&gt;.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> value the new value of the field.</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">native</span> <span class="keyword">void</span> <span class="title function_">putIntVolatile</span><span class="params">(Object obj, <span class="type">long</span> offset, <span class="type">int</span> value)</span>;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/***</span></span><br><span class="line"><span class="comment">   * Retrieves the value of the integer field at the specified offset in the</span></span><br><span class="line"><span class="comment">   * supplied object with volatile load semantics.</span></span><br><span class="line"><span class="comment">   *</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> obj the object containing the field to read.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> offset the offset of the integer field within &lt;code&gt;obj&lt;/code&gt;.</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">native</span> <span class="type">int</span> <span class="title function_">getIntVolatile</span><span class="params">(Object obj, <span class="type">long</span> offset)</span>;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/***</span></span><br><span class="line"><span class="comment">   * Sets the value of the long field at the specified offset in the</span></span><br><span class="line"><span class="comment">   * supplied object to the given value, with volatile store semantics.</span></span><br><span class="line"><span class="comment">   *</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> obj the object containing the field to modify.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> offset the offset of the long field within &lt;code&gt;obj&lt;/code&gt;.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> value the new value of the field.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@see</span> #putLong(Object,long,long)</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">native</span> <span class="keyword">void</span> <span class="title function_">putLongVolatile</span><span class="params">(Object obj, <span class="type">long</span> offset, <span class="type">long</span> value)</span>;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/***</span></span><br><span class="line"><span class="comment">   * Sets the value of the long field at the specified offset in the</span></span><br><span class="line"><span class="comment">   * supplied object to the given value.</span></span><br><span class="line"><span class="comment">   *</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> obj the object containing the field to modify.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> offset the offset of the long field within &lt;code&gt;obj&lt;/code&gt;.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> value the new value of the field.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@see</span> #putLongVolatile(Object,long,long)</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">native</span> <span class="keyword">void</span> <span class="title function_">putLong</span><span class="params">(Object obj, <span class="type">long</span> offset, <span class="type">long</span> value)</span>;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/***</span></span><br><span class="line"><span class="comment">   * Retrieves the value of the long field at the specified offset in the</span></span><br><span class="line"><span class="comment">   * supplied object with volatile load semantics.</span></span><br><span class="line"><span class="comment">   *</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> obj the object containing the field to read.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> offset the offset of the long field within &lt;code&gt;obj&lt;/code&gt;.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@see</span> #getLong(Object,long)</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">native</span> <span class="type">long</span> <span class="title function_">getLongVolatile</span><span class="params">(Object obj, <span class="type">long</span> offset)</span>;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/***</span></span><br><span class="line"><span class="comment">   * Retrieves the value of the long field at the specified offset in the</span></span><br><span class="line"><span class="comment">   * supplied object.</span></span><br><span class="line"><span class="comment">   *</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> obj the object containing the field to read.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> offset the offset of the long field within &lt;code&gt;obj&lt;/code&gt;.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@see</span> #getLongVolatile(Object,long)</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">native</span> <span class="type">long</span> <span class="title function_">getLong</span><span class="params">(Object obj, <span class="type">long</span> offset)</span>;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/***</span></span><br><span class="line"><span class="comment">   * Sets the value of the object field at the specified offset in the</span></span><br><span class="line"><span class="comment">   * supplied object to the given value, with volatile store semantics.</span></span><br><span class="line"><span class="comment">   *</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> obj the object containing the field to modify.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> offset the offset of the object field within &lt;code&gt;obj&lt;/code&gt;.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> value the new value of the field.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@see</span> #putObject(Object,long,Object)</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">native</span> <span class="keyword">void</span> <span class="title function_">putObjectVolatile</span><span class="params">(Object obj, <span class="type">long</span> offset, Object value)</span>;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/***</span></span><br><span class="line"><span class="comment">   * Sets the value of the object field at the specified offset in the</span></span><br><span class="line"><span class="comment">   * supplied object to the given value.</span></span><br><span class="line"><span class="comment">   *</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> obj the object containing the field to modify.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> offset the offset of the object field within &lt;code&gt;obj&lt;/code&gt;.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> value the new value of the field.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@see</span> #putObjectVolatile(Object,long,Object)</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">native</span> <span class="keyword">void</span> <span class="title function_">putObject</span><span class="params">(Object obj, <span class="type">long</span> offset, Object value)</span>;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/***</span></span><br><span class="line"><span class="comment">   * Retrieves the value of the object field at the specified offset in the</span></span><br><span class="line"><span class="comment">   * supplied object with volatile load semantics.</span></span><br><span class="line"><span class="comment">   *</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> obj the object containing the field to read.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> offset the offset of the object field within &lt;code&gt;obj&lt;/code&gt;.</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">native</span> Object <span class="title function_">getObjectVolatile</span><span class="params">(Object obj, <span class="type">long</span> offset)</span>;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/***</span></span><br><span class="line"><span class="comment">   * Returns the offset of the first element for a given array class.</span></span><br><span class="line"><span class="comment">   * To access elements of the array class, this value may be used along</span></span><br><span class="line"><span class="comment">   * with that returned by </span></span><br><span class="line"><span class="comment">   * &lt;a href=&quot;#arrayIndexScale&quot;&gt;&lt;code&gt;arrayIndexScale&lt;/code&gt;&lt;/a&gt;,</span></span><br><span class="line"><span class="comment">   * if non-zero.</span></span><br><span class="line"><span class="comment">   *</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> arrayClass the class for which the first element&#x27;s address should</span></span><br><span class="line"><span class="comment">   *                   be obtained.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@return</span> the offset of the first element of the array class.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@see</span> arrayIndexScale(Class)</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">native</span> <span class="type">int</span> <span class="title function_">arrayBaseOffset</span><span class="params">(Class arrayClass)</span>;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/***</span></span><br><span class="line"><span class="comment">   * Returns the scale factor used for addressing elements of the supplied</span></span><br><span class="line"><span class="comment">   * array class.  Where a suitable scale factor can not be returned (e.g.</span></span><br><span class="line"><span class="comment">   * for primitive types), zero should be returned.  The returned value</span></span><br><span class="line"><span class="comment">   * can be used with </span></span><br><span class="line"><span class="comment">   * &lt;a href=&quot;#arrayBaseOffset&quot;&gt;&lt;code&gt;arrayBaseOffset&lt;/code&gt;&lt;/a&gt;</span></span><br><span class="line"><span class="comment">   * to access elements of the class.</span></span><br><span class="line"><span class="comment">   *</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> arrayClass the class whose scale factor should be returned.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@return</span> the scale factor, or zero if not supported for this array class.</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">native</span> <span class="type">int</span> <span class="title function_">arrayIndexScale</span><span class="params">(Class arrayClass)</span>;</span><br><span class="line">  </span><br><span class="line">  <span class="comment">/***</span></span><br><span class="line"><span class="comment">   * Releases the block on a thread created by </span></span><br><span class="line"><span class="comment">   * &lt;a href=&quot;#park&quot;&gt;&lt;code&gt;park&lt;/code&gt;&lt;/a&gt;.  This method can also be used</span></span><br><span class="line"><span class="comment">   * to terminate a blockage caused by a prior call to &lt;code&gt;park&lt;/code&gt;.</span></span><br><span class="line"><span class="comment">   * This operation is unsafe, as the thread must be guaranteed to be</span></span><br><span class="line"><span class="comment">   * live.  This is true of Java, but not native code.</span></span><br><span class="line"><span class="comment">   *</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> thread the thread to unblock.</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">native</span> <span class="keyword">void</span> <span class="title function_">unpark</span><span class="params">(Thread thread)</span>;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/***</span></span><br><span class="line"><span class="comment">   * Blocks the thread until a matching </span></span><br><span class="line"><span class="comment">   * &lt;a href=&quot;#unpark&quot;&gt;&lt;code&gt;unpark&lt;/code&gt;&lt;/a&gt; occurs, the thread is</span></span><br><span class="line"><span class="comment">   * interrupted or the optional timeout expires.  If an &lt;code&gt;unpark&lt;/code&gt;</span></span><br><span class="line"><span class="comment">   * call has already occurred, this also counts.  A timeout value of zero</span></span><br><span class="line"><span class="comment">   * is defined as no timeout.  When &lt;code&gt;isAbsolute&lt;/code&gt; is</span></span><br><span class="line"><span class="comment">   * &lt;code&gt;true&lt;/code&gt;, the timeout is in milliseconds relative to the</span></span><br><span class="line"><span class="comment">   * epoch.  Otherwise, the value is the number of nanoseconds which must</span></span><br><span class="line"><span class="comment">   * occur before timeout.  This call may also return spuriously (i.e.</span></span><br><span class="line"><span class="comment">   * for no apparent reason).</span></span><br><span class="line"><span class="comment">   *</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> isAbsolute true if the timeout is specified in milliseconds from</span></span><br><span class="line"><span class="comment">   *                   the epoch.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> time either the number of nanoseconds to wait, or a time in</span></span><br><span class="line"><span class="comment">   *             milliseconds from the epoch to wait for.</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">native</span> <span class="keyword">void</span> <span class="title function_">park</span><span class="params">(<span class="type">boolean</span> isAbsolute, <span class="type">long</span> time)</span>;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="Reference"><a href="#Reference" class="headerlink" title="Reference"></a>Reference</h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/mickole/articles/3757278.html"><a target="_blank" rel="noopener" href="https://www.cnblogs.com/mickole/articles/3757278.html">Unsafe类详解</a></a></p>
+<p><a target="_blank" rel="noopener" href="http://mishadoff.com/blog/java-magic-part-4-sun-dot-misc-dot-unsafe/">Part 4: sun.misc.Unsafe</a></p>
+<p><a target="_blank" rel="noopener" href="http://hg.openjdk.java.net/jdk8/jdk8/jdk/file/687fd7c7986d/src/share/classes/sun/misc/Unsafe.java">Src Unsafe.java</a></p>
+</blockquote>
+<h1 id="Memory-Barriers"><a href="#Memory-Barriers" class="headerlink" title="Memory Barriers"></a>Memory Barriers</h1><blockquote>
+<p>Memory barrier instructions directly control only the interaction of a CPU with its cache, with its write-buffer that holds stores waiting to be flushed to memory, and&#x2F;or its buffer of waiting loads or speculatively executed instructions. These effects may lead to further interaction among caches, main memory and other processors.</p>
+</blockquote>
+<p><strong>Reorderings</strong></p>
+<table>
+<thead>
+<tr>
+<th><strong>Can Reorder</strong></th>
+<th><em>2nd operation</em></th>
+<th><em>2nd operation</em></th>
+<th><em>2nd operation</em></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><em>1st operation</em></td>
+<td>Normal Load <br/>Normal Store</td>
+<td>Volatile Load  <br/>MonitorEnter</td>
+<td>Volatile Store <br/>MonitorExit</td>
+</tr>
+<tr>
+<td>Normal Load <br/> Normal Store</td>
+<td></td>
+<td></td>
+<td>No</td>
+</tr>
+<tr>
+<td>Volatile Load <br/> MonitorEnter</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Volatile store <br/> MonitorExit</td>
+<td></td>
+<td>No</td>
+<td>No</td>
+</tr>
+</tbody></table>
+<p>Where:</p>
+<ul>
+<li>Normal Loads are getfield, getstatic, array load of non-volatile fields.</li>
+<li>Normal Stores are putfield, putstatic, array store of non-volatile fields</li>
+<li>Volatile Loads are getfield, getstatic of volatile fields that are accessible by multiple threads</li>
+<li>Volatile Stores are putfield, putstatic of volatile fields that are accessible by multiple threads</li>
+<li>MonitorEnters (including entry to synchronized methods) are for lock objects accessible by multiple threads.</li>
+<li>MonitorExits (including exit from synchronized methods) are for lock objects accessible by multiple threads.</li>
+</ul>
+<p><strong>Final Fields</strong></p>
+<blockquote>
+<p>Loads and Stores of final fields act as “normal” accesses with respect to locks and volatiles, but impose two additional reordering rules:</p>
+<ol>
+<li>A store of a final field (inside a constructor) and, if the field is a reference, any store that this final can reference, cannot be reordered with a subsequent store (outside that constructor) of the reference to the object holding that field into a variable accessible to other threads.</li>
+<li>The initial load (i.e., the very first encounter by a thread) of a final field cannot be reordered with the initial load of the reference to the object containing the final field.</li>
+</ol>
+<p>These rules imply that reliable use of final fields by Java programmers requires that the load of a shared reference to an object with a final field itself be synchronized, volatile, or final, or derived from such a load, thus ultimately ordering the initializing stores in constructors with subsequent uses outside constructors.</p>
+</blockquote>
+<hr>
+<p><strong>Barriers Categories</strong></p>
+<table>
+<thead>
+<tr>
+<th>Barriers</th>
+<th>Sequence</th>
+<th>Desc</th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>LoadLoad</td>
+<td><code>Load1; LoadLoad; Load2</code></td>
+<td>ensures that Load1’s data are loaded before data accessed by Load2 and all subsequent load instructions are loaded. In general, explicit LoadLoad barriers are needed on processors that perform speculative loads and&#x2F;or out-of-order processing in which waiting load instructions can bypass waiting stores. On processors that guarantee to always preserve load ordering, the barriers amount to no-ops.</td>
+<td></td>
+</tr>
+<tr>
+<td>StoreStore</td>
+<td><code>Store1; StoreStore; Store2</code></td>
+<td>ensures that Store1’s data are visible to other processors (i.e., flushed to memory) before the data associated with Store2 and all subsequent store instructions. In general, StoreStore barriers are needed on processors that do not otherwise guarantee strict ordering of flushes from write buffers and&#x2F;or caches to other processors or main memory.</td>
+<td></td>
+</tr>
+<tr>
+<td>LoadStore</td>
+<td><code>Load1; LoadStore; Store2</code></td>
+<td>ensures that Load1’s data are loaded before all data associated with Store2 and subsequent store instructions are flushed. LoadStore barriers are needed only on those out-of-order procesors in which waiting store instructions can bypass loads.</td>
+<td></td>
+</tr>
+<tr>
+<td>StoreLoad</td>
+<td><code>Store1; StoreLoad; Load2</code></td>
+<td>ensures that Store1’s data are made visible to other processors (i.e., flushed to main memory) before data accessed by Load2 and all subsequent load instructions are loaded. StoreLoad barriers protect against a subsequent load incorrectly using Store1’s data value rather than that from a more recent store to the same location performed by a different processor. Because of this, on the processors discussed below, a StoreLoad is strictly necessary only for separating stores from subsequent loads of the same location(s) as were stored before the barrier. StoreLoad barriers are needed on nearly all recent multiprocessors, and are usually the most expensive kind. Part of the reason they are expensive is that they must disable mechanisms that ordinarily bypass cache to satisfy loads from write-buffers. This might be implemented by letting the buffer fully flush, among other possible stalls.</td>
+<td></td>
+</tr>
+</tbody></table>
+<p>The following table shows how these barriers correspond to JSR-133 ordering rules.</p>
+<table>
+<thead>
+<tr>
+<th><strong>Required barriers</strong></th>
+<th><em>2nd operation</em></th>
+<th><em>2nd operation</em></th>
+<th><em>2nd operation</em></th>
+<th><em>2nd operation</em></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><em>1st operation</em></td>
+<td>Normal Load</td>
+<td>Normal Store</td>
+<td>Volatile Load <br/>MonitorEnter</td>
+<td>Volatile Store<br/> MonitorExit</td>
+</tr>
+<tr>
+<td>Normal Load</td>
+<td></td>
+<td></td>
+<td></td>
+<td>LoadStore</td>
+</tr>
+<tr>
+<td>Normal Store</td>
+<td></td>
+<td></td>
+<td></td>
+<td>StoreStore</td>
+</tr>
+<tr>
+<td>Volatile Load <br/>MonitorEnter</td>
+<td>LoadLoad</td>
+<td>LoadStore</td>
+<td>LoadLoad</td>
+<td>LoadStore</td>
+</tr>
+<tr>
+<td>Volatile Store <br/>MonitorExit</td>
+<td></td>
+<td></td>
+<td>StoreLoad</td>
+<td>StoreStore</td>
+</tr>
+</tbody></table>
+<hr>
+<p><strong>Interactions with Atomic Instructions</strong></p>
+<table>
+<thead>
+<tr>
+<th><strong>Required Barriers</strong></th>
+<th><em>2nd operation</em></th>
+<th></th>
+<th></th>
+<th></th>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><em>1st operation</em></td>
+<td>Normal Load</td>
+<td>Normal Store</td>
+<td>Volatile Load</td>
+<td>Volatile Store</td>
+<td>MonitorEnter</td>
+<td>MonitorExit</td>
+</tr>
+<tr>
+<td>Normal Load</td>
+<td></td>
+<td></td>
+<td></td>
+<td>LoadStore</td>
+<td></td>
+<td>LoadStore</td>
+</tr>
+<tr>
+<td>Normal Store</td>
+<td></td>
+<td></td>
+<td></td>
+<td>StoreStore</td>
+<td></td>
+<td>StoreExit</td>
+</tr>
+<tr>
+<td>Volatile Load</td>
+<td>LoadLoad</td>
+<td>LoadStore</td>
+<td>LoadLoad</td>
+<td>LoadStore</td>
+<td>LoadEnter</td>
+<td>LoadExit</td>
+</tr>
+<tr>
+<td>Volatile Store</td>
+<td></td>
+<td></td>
+<td>StoreLoad</td>
+<td>StoreStore</td>
+<td>StoreEnter</td>
+<td>StoreExit</td>
+</tr>
+<tr>
+<td>MonitorEnter</td>
+<td>EnterLoad</td>
+<td>EnterStore</td>
+<td>EnterLoad</td>
+<td>EnterStore</td>
+<td>EnterEnter</td>
+<td>EnterExit</td>
+</tr>
+<tr>
+<td>MonitorExit</td>
+<td></td>
+<td></td>
+<td>ExitLoad</td>
+<td>ExitStore</td>
+<td>ExitEnter</td>
+<td>ExitExit</td>
+</tr>
+</tbody></table>
+<p>In this table, “Enter” is the same as “Load” and “Exit” is the same as “Store”, unless overridden by the use and nature of atomic instructions. In particular:</p>
+<ul>
+<li>EnterLoad is needed on entry to any synchronized block&#x2F;method that performs a load. It is the same as LoadLoad unless an atomic instruction is used in MonitorEnter and itself provides a barrier with at least the properties of LoadLoad, in which case it is a no-op.</li>
+<li>StoreExit is needed on exit of any synchronized block&#x2F;method that performs a store. It is the same as StoreStore unless an atomic instruction is used in MonitorExit and itself provides a barrier with at least the properties of StoreStore, in which case it is a no-op.</li>
+<li>ExitEnter is the same as StoreLoad unless atomic instructions are used in MonitorExit and&#x2F;or MonitorEnter and at least one of these provide a barrier with at least the properties of StoreLoad, in which case it is a no-op.</li>
+</ul>
+<hr>
+<p><strong>Recipes</strong></p>
+<blockquote>
+<ol>
+<li>Issue a StoreStore barrier before each volatile store.<br>(On ia64 you must instead fold this and most barriers into corresponding load or store instructions.)</li>
+<li>Issue a StoreStore barrier after all stores but before return from any constructor for any class with a final field.</li>
+<li>Issue a StoreLoad barrier after each volatile store.<br>Note that you could instead issue one before each volatile load, but this would be slower for typical programs using volatiles in which reads greatly outnumber writes. Alternatively, if available, you can implement volatile store as an atomic instruction (for example XCHG on x86) and omit the barrier. This may be more efficient if atomic instructions are cheaper than StoreLoad barriers.</li>
+<li>Issue LoadLoad and LoadStore barriers after each volatile load.<br>On processors that preserve data dependent ordering, you need not issue a barrier if the next access instruction is dependent on the value of the load. In particular, you do not need a barrier after a load of a volatile reference if the subsequent instruction is a null-check or load of a field of that reference.</li>
+<li>Issue an ExitEnter barrier either before each MonitorEnter or after each MonitorExit.<br>(As discussed above, ExitEnter is a no-op if either MonitorExit or MonitorEnter uses an atomic instruction that supplies the equivalent of a StoreLoad barrier. Similarly for others involving Enter and Exit in the remaining steps.)</li>
+<li>Issue EnterLoad and EnterStore barriers after each MonitorEnter.</li>
+<li>Issue StoreExit and LoadExit barriers before each MonitorExit.</li>
+<li>If on a processor that does not intrinsically provide ordering on indirect loads, issue a LoadLoad barrier before each load of a final field.</li>
+</ol>
+</blockquote>
+<p>removing redundant barriers. The above tables indicate that barriers can be eliminated as follows:</p>
+<table>
+<thead>
+<tr>
+<th>Original</th>
+<th></th>
+<th></th>
+<th>&#x3D;&gt;</th>
+<th>Transformed</th>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1st</td>
+<td>ops</td>
+<td>2nd</td>
+<td>&#x3D;&gt;</td>
+<td>1st</td>
+<td>ops</td>
+<td>2nd</td>
+</tr>
+<tr>
+<td>LoadLoad</td>
+<td>[no loads]</td>
+<td>LoadLoad</td>
+<td>&#x3D;&gt;</td>
+<td></td>
+<td>[no loads]</td>
+<td>LoadLoad</td>
+</tr>
+<tr>
+<td>LoadLoad</td>
+<td>[no loads]</td>
+<td>StoreLoad</td>
+<td>&#x3D;&gt;</td>
+<td></td>
+<td>[no loads]</td>
+<td>StoreLoad</td>
+</tr>
+<tr>
+<td>StoreStore</td>
+<td>[no stores]</td>
+<td>StoreStore</td>
+<td>&#x3D;&gt;</td>
+<td></td>
+<td>[no stores]</td>
+<td>StoreStore</td>
+</tr>
+<tr>
+<td>StoreStore</td>
+<td>[no stores]</td>
+<td>StoreLoad</td>
+<td>&#x3D;&gt;</td>
+<td></td>
+<td>[no stores]</td>
+<td>StoreLoad</td>
+</tr>
+<tr>
+<td>StoreLoad</td>
+<td>[no loads]</td>
+<td>LoadLoad</td>
+<td>&#x3D;&gt;</td>
+<td>StoreLoad</td>
+<td>[no loads]</td>
+<td></td>
+</tr>
+<tr>
+<td>StoreLoad</td>
+<td>[no stores]</td>
+<td>StoreStore</td>
+<td>&#x3D;&gt;</td>
+<td>StoreLoad</td>
+<td>[no stores]</td>
+<td></td>
+</tr>
+<tr>
+<td>StoreLoad</td>
+<td>[no volatile loads]</td>
+<td>StoreLoad</td>
+<td>&#x3D;&gt;</td>
+<td></td>
+<td>[no volatile loads]</td>
+<td>StoreLoad</td>
+</tr>
+</tbody></table>
+<hr>
+<p><strong>Reference</strong></p>
+<blockquote>
+<p><a target="_blank" rel="noopener" href="http://gee.cs.oswego.edu/dl/jmm/cookbook.html">The JSR-133 Cookbook for Compiler Writers</a><br><a target="_blank" rel="noopener" href="http://www.cs.umd.edu/~pugh/java/memoryModel/jsr-133-faq.html">JSR 133 (Java Memory Model) FAQ</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/2ab5e3d7e510">内存屏障</a><br><a target="_blank" rel="noopener" href="https://stackoverflow.com/questions/15360598/what-does-a-loadload-barrier-really-do">what-does-a-loadload-barrier-really-do</a><a target="_blank" rel="noopener" href="https://stackoverflow.com/questions/48615456/what-is-difference-between-getxxxvolatile-vs-getxxx-in-java-unsafe">What is difference between getXXXVolatile vs getXXX in java unsafe?</a></p>
+<p>Atomic*.lazySet<br>    <a target="_blank" rel="noopener" href="https://stackoverflow.com/questions/1468007/atomicinteger-lazyset-vs-set/14020946">AtomicInteger lazySet vs set</a><br>    <a target="_blank" rel="noopener" href="http://psy-lob-saw.blogspot.com/2012/12/atomiclazyset-is-performance-win-for.html">Atomic lazySet</a><br>    <a target="_blank" rel="noopener" href="http://psy-lob-saw.blogspot.com/2016/12/what-is-lazyset-putordered.html">What do Atomic::lazySet&#x2F;Atomic FieldUpdater::lazySet&#x2F;Unsafe::putOrdered actually mean?</a><br>    <a target="_blank" rel="noopener" href="https://bugs.java.com/bugdatabase/view_bug.do?bug_id=6275329">Add lazySet methods to atomic classes</a></p>
+<blockquote>
+<p>UNSAFE.putOrderedLong:<br>    a Store&#x2F;Store barrier between this write and any previous store.</p>
+<p>UNSAFE.putLongVolatile:<br>    Store&#x2F;Store barrier between this write and any previous write ,</p>
+<p>​    and a Store&#x2F;Load barrier between this write and any subsequent volatile read.</p>
+</blockquote>
+</blockquote>
+<h1 id="Threads-Basics"><a href="#Threads-Basics" class="headerlink" title="Threads  Basics"></a>Threads  Basics</h1><p><strong>线程状态</strong></p>
+<table>
+<thead>
+<tr>
+<th>状态</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>NEW</td>
+<td>初始状态，线程被构建还没有调用start()方法</td>
+</tr>
+<tr>
+<td>RUNNABLE</td>
+<td>运行状态，java线程将OS中的就绪和运行两种状态笼统地称作运行中</td>
+</tr>
+<tr>
+<td>BLOCKED</td>
+<td>阻塞状态，表示线程阻塞于锁</td>
+</tr>
+<tr>
+<td>WAITING</td>
+<td>等待状态，表示线程进入等待状态，进入该状态表示当前线程需要等待其他线程做出一些特定动作(通知或中断)</td>
+</tr>
+<tr>
+<td>TIME_WAITING</td>
+<td>超时等待状态，该状态不同于WAITING，是可以在指定的时间自行返回的</td>
+</tr>
+<tr>
+<td>TERMINATED</td>
+<td>终止状态，表示当前线程已经执行完毕</td>
+</tr>
+</tbody></table>
+<p><strong>线程相关的方法和线程状态迁移</strong></p>
+<p><img src="/flame/images/java/concurrency/java-thread-status-migration-graph.png" alt="线程相关的方法和线程状态迁移"></p>
+<hr>
+<h2 id="java-lang-Object"><a href="#java-lang-Object" class="headerlink" title="java.lang.Object"></a><strong>java.lang.Object</strong></h2><table>
+<thead>
+<tr>
+<th>METHOD</th>
+<th><strong>Description</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>notify()</code></td>
+<td>Wakes up a single thread that is waiting on this object’s monitor.</td>
+</tr>
+<tr>
+<td><code>notifyAll()</code></td>
+<td>Wakes up all threads that are waiting on this object’s monitor.</td>
+</tr>
+<tr>
+<td><code>wait()</code></td>
+<td>Causes the current thread to wait until another thread invokes the <code>notify()</code>method or the <code>notifyAll()</code>method for this object.</td>
+</tr>
+<tr>
+<td><code>wait(long timeout)</code></td>
+<td>Causes the current thread to wait until either another thread invokes the <code>notify()</code>method or the <code>notifyAll()</code> method for this object, or a specified amount of time has elapsed.</td>
+</tr>
+<tr>
+<td><code>wait(long timeout, int nanos)</code></td>
+<td>Causes the current thread to wait until another thread invokes the <code>notify()</code> method or the <code>notifyAll()</code> method for this object, or some other thread interrupts the current thread, or a certain amount of real time has elapsed.</td>
+</tr>
+</tbody></table>
+<p><strong>nogify()</strong></p>
+<blockquote>
+<p>Wakes up a single thread that is waiting on this object’s monitor.</p>
+<p>This method should only be called by a thread that is the owner of this object’s monitor. A thread becomes the owner of the object’s monitor in one of three ways:</p>
+<ul>
+<li>By executing a synchronized instance method of that object.</li>
+<li>By executing the body of a <code>synchronized</code> statement that synchronizes on the object.</li>
+<li>For objects of type <code>Class,</code> by executing a synchronized static method of that class.</li>
+</ul>
+<p>Only one thread at a time can own an object’s monitor.</p>
+</blockquote>
+<p><strong>notifyAll()</strong></p>
+<blockquote>
+<p>This method should only be called by a thread that is the owner of this object’s monitor. </p>
+<p>A thread becomes the owner of the object’s monitor in one of three ways:</p>
+<ul>
+<li>By executing a synchronized instance method of that object.</li>
+<li>By executing the body of a <code>synchronized</code> statement that synchronizes on the object.</li>
+<li>For objects of type <code>Class,</code> by executing a synchronized static method of that class.</li>
+</ul>
+<p>Only one thread at a time can own an object’s monitor.</p>
+</blockquote>
+<p><strong>wait()</strong></p>
+<blockquote>
+<p>Causes the current thread to wait until another thread invokes the <code>notify()</code>method or the <code>notifyAll()</code>method for this object.</p>
+<p>The current thread must own this object’s monitor. </p>
+<p>The thread releases ownership of this monitor and waits until another thread notifies threads waiting on this object’s monitor to wake up either through a call to the <code>notify</code> method or the <code>notifyAll</code> method.</p>
+</blockquote>
+<p><strong>wait(long timeout)</strong></p>
+<blockquote>
+<p>Causes the current thread to wait until either another thread invokes the <code>notify()</code>method or the <code>notifyAll()</code> method for this object, or a specified amount of time has elapsed.</p>
+<p>The current thread must own this object’s monitor.</p>
+<p>This method causes the current thread (call it T) to place itself in the wait set for this object and then to relinquish any and all synchronization claims on this object. Thread T becomes disabled for thread scheduling purposes and lies dormant until one of four things happens:</p>
+<ul>
+<li>Some other thread invokes the <code>notify</code> method for this object and thread T happens to be arbitrarily chosen as the thread to be awakened.</li>
+<li>Some other thread invokes the <code>notifyAll</code> method for this object.</li>
+<li>Some other thread <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/lang/Thread.html#interrupt--">interrupts</a> thread T.</li>
+<li>The specified amount of real time has elapsed, more or less. If <code>timeout</code> is zero, however, then real time is not taken into consideration and the thread simply waits until notified.</li>
+</ul>
+<p>The thread T is then removed from the wait set for this object and re-enabled for thread scheduling. </p>
+<p>A thread can also wake up without being notified, interrupted, or timing out, a so-called <strong>spurious wakeup</strong>. While this will rarely occur in practice, applications must guard against it by testing for the condition that should have caused the thread to be awakened, and continuing to wait if the condition is not satisfied. In other words, waits should always occur in loops, like this one:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">synchronized</span> (obj) &#123;</span><br><span class="line">    <span class="keyword">while</span> (&lt;condition does not hold&gt;)</span><br><span class="line">        obj.wait(timeout);</span><br><span class="line">    ... <span class="comment">// Perform action appropriate to condition</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<p><strong>wait(long timeout, int nanos)</strong></p>
+<blockquote>
+<p>This method is similar to the <code>wait</code> method of one argument, but it allows finer control over the amount of time to wait for a notification before giving up.</p>
+</blockquote>
+<p><strong>线程状态迁移</strong></p>
+<p><img src="/flame/images/java/concurrency/java-thread-status-migration.png" alt="线程状态迁移"></p>
+<h2 id="java-lang-Thread"><a href="#java-lang-Thread" class="headerlink" title="java.lang.Thread"></a><strong>java.lang.Thread</strong></h2><p><strong>methods</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Returns this thread&#x27;s priority.         </span></span><br><span class="line"><span class="type">int</span> <span class="title function_">getPriority</span><span class="params">()</span></span><br><span class="line"><span class="comment">// Changes the priority of this thread.  </span></span><br><span class="line"><span class="keyword">void</span> <span class="title function_">setPriority</span><span class="params">(<span class="type">int</span> newPriority)</span></span><br><span class="line">  </span><br><span class="line"><span class="comment">// Marks this thread as either a daemon thread or a user thread.   </span></span><br><span class="line"><span class="keyword">void</span> <span class="title function_">setDaemon</span><span class="params">(<span class="type">boolean</span> on)</span></span><br><span class="line"><span class="comment">// Tests if this thread is a daemon thread. </span></span><br><span class="line"><span class="type">boolean</span>	<span class="title function_">isDaemon</span><span class="params">()</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// Causes the currently executing thread to sleep (temporarily cease execution)</span></span><br><span class="line"><span class="comment">// for the specified number of milliseconds,</span></span><br><span class="line"><span class="comment">// subject to the precision and accuracy of system timers and schedulers.</span></span><br><span class="line">sleep(<span class="type">long</span> millis) <span class="keyword">throws</span>  InterruptedException</span><br><span class="line"><span class="comment">// Causes the currently executing thread to sleep (temporarily cease execution) </span></span><br><span class="line"><span class="comment">// for the specified number of milliseconds plus the specified number of nanoseconds, </span></span><br><span class="line"><span class="comment">// subject to the precision and accuracy of system timers and schedulers.</span></span><br><span class="line">sleep(<span class="type">long</span> millis, <span class="type">int</span> nanos) <span class="keyword">throws</span>  InterruptedException</span><br><span class="line">  </span><br><span class="line"><span class="comment">//Waits for this thread to die.</span></span><br><span class="line"><span class="keyword">void</span> <span class="title function_">join</span><span class="params">()</span> <span class="keyword">throws</span> InterruptedException</span><br><span class="line"><span class="comment">// Waits at most millis milliseconds for this thread to die.</span></span><br><span class="line"><span class="comment">// A timeout of 0 means to wait forever.</span></span><br><span class="line"><span class="keyword">void</span> <span class="title function_">join</span><span class="params">(<span class="type">long</span> millis)</span> <span class="keyword">throws</span> InterruptedException</span><br><span class="line"><span class="comment">// Waits at most millis milliseconds plus nanos nanoseconds for this thread to die. </span></span><br><span class="line"><span class="keyword">void</span> <span class="title function_">join</span><span class="params">(<span class="type">long</span> millis, <span class="type">int</span> nanos)</span> <span class="keyword">throws</span> InterruptedException</span><br><span class="line"></span><br><span class="line">  </span><br><span class="line"></span><br><span class="line"><span class="comment">// Interrupts this thread. </span></span><br><span class="line"><span class="keyword">void</span> <span class="title function_">interrupt</span><span class="params">()</span></span><br><span class="line"><span class="comment">// Tests whether the current thread has been interrupted. </span></span><br><span class="line"><span class="keyword">static</span> <span class="type">boolean</span> <span class="title function_">interrupted</span><span class="params">()</span></span><br><span class="line"><span class="comment">// Tests whether this thread has been interrupted.</span></span><br><span class="line"><span class="type">boolean</span> <span class="title function_">isInterrutped</span><span class="params">()</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h2 id="中断"><a href="#中断" class="headerlink" title="中断"></a><strong>中断</strong></h2><p><code>void interrupt()</code>方法只是改变中断状态，<br><code>boolean isInterrutped()</code>是Thread类的实例方法，用于检查指定线程的中断状态，并不会改变中断状态。<br><code>static boolean interrupted()</code>是Thread类的静态方法，用于检查并<strong>清除</strong>当前线程的中断状态。只有这个方法才可以清除中断状态，操作的是当前线程，该方法并不能用于清除其他线程的中断状态。</p>
+<p><img src="/flame/images/java/concurrency/java-thread-interupt-migration.png" alt="线程的中断状态"></p>
+<p><strong>void interrupt()</strong></p>
+<blockquote>
+<p>Interrupts this thread.</p>
+<p>If this thread is blocked in an invocation of the <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/lang/Object.html#wait--"><code>wait()</code></a>, <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/lang/Object.html#wait-long-"><code>wait(long)</code></a>, or <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/lang/Object.html#wait-long-int-"><code>wait(long, int)</code></a> methods of the <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/lang/Object.html"><code>Object</code></a> class, or of the <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/lang/Thread.html#join--"><code>join()</code></a>, <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/lang/Thread.html#join-long-"><code>join(long)</code></a>, <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/lang/Thread.html#join-long-int-"><code>join(long, int)</code></a>, <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/lang/Thread.html#sleep-long-"><code>sleep(long)</code></a>, or <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/lang/Thread.html#sleep-long-int-"><code>sleep(long, int)</code></a>, methods of this class, then its interrupt status will be cleared and it will receive an <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/lang/InterruptedException.html"><code>InterruptedException</code></a>.</p>
+<p>If this thread is blocked in an I&#x2F;O operation upon an <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/nio/channels/InterruptibleChannel.html"><code>InterruptibleChannel</code></a> then the channel will be closed, the thread’s interrupt status will be set, and the thread will receive a <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/nio/channels/ClosedByInterruptException.html"><code>ClosedByInterruptException</code></a>.</p>
+<p>If this thread is blocked in a <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/nio/channels/Selector.html"><code>Selector</code></a> then the thread’s interrupt status will be set and it will return immediately from the selection operation, possibly with a non-zero value, just as if the selector’s <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/nio/channels/Selector.html#wakeup--"><code>wakeup</code></a> method were invoked.</p>
+<p>If none of the previous conditions hold then this thread’s interrupt status will be set.</p>
+<p>Interrupting a thread that is not alive need not have any effect.</p>
+<p>如果没有调用sleep 、wait、join等方法，或者没有编写检查线程的中断状态并抛出InterruptedException异常的代码，那么InterruptedException异常就不会被抛出</p>
+</blockquote>
+<p><strong>InterruptedException</strong></p>
+<blockquote>
+<p>Thrown when a thread is waiting, sleeping, or otherwise occupied, and the thread is interrupted, either before or during the activity. Occasionally a method may wish to test whether the current thread has been interrupted, and if so, to immediately throw this exception. The following code can be used to achieve this effect:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (Thread.interrupted())  <span class="comment">// Clears interrupted status!</span></span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">InterruptedException</span>();</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2 id="Reference-1"><a href="#Reference-1" class="headerlink" title="Reference"></a><strong>Reference</strong></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/specs/jls/se7/html/jls-17.html#jls-17.2">Chapter 17. Threads and Locks</a><br><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/lang/Thread.html">Thread Document</a><br><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/lang/Object.html">Object Document</a><br><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/lang/Runnable.html">Runnable Document</a><br><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/lang/ThreadLocal.html">ThreadLocal Document</a></p>
+</blockquote>
+<h1 id="Concurrent-Package"><a href="#Concurrent-Package" class="headerlink" title="Concurrent Package"></a>Concurrent Package</h1><table>
+<thead>
+<tr>
+<th>package</th>
+<th>reference</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>java.util.concurrent</td>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/package-tree.html">package tree</a><br/><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/package-summary.html">package summary</a></td>
+</tr>
+<tr>
+<td>java.util.concurrent.locks</td>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/package-tree.html">package tree</a><br/><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/package-summary.html">package summary</a></td>
+</tr>
+<tr>
+<td>java.util.concurrent.atomic</td>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/atomic/package-tree.html">package tree</a> <br/><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/index.html?java/util/concurrent/atomic/package-summary.html">package summary</a></td>
+</tr>
+</tbody></table>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">http://www.cs.rochester.edu/research/synchronization/pseudocode/duals.html</span><br><span class="line">http://www.cs.rochester.edu/u/scott/papers/2004_DISC_dual_DS.pdf</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="AQS"><a href="#AQS" class="headerlink" title="AQS"></a>AQS</h2><p>构建并发包工具的基本框架</p>
+<p><a target="_blank" rel="noopener" href="http://gee.cs.oswego.edu/dl/papers/aqs.pdf">Doug Lea 论文</a></p>
+<p>JDK中的AbstractQueuedSynchronizer源码</p>
+<p><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/AbstractQueuedSynchronizer.html">AbstractQueuedSynchronizer Document</a></p>
+<h2 id="usual-sync-tools"><a href="#usual-sync-tools" class="headerlink" title="usual sync tools"></a>usual sync tools</h2><table>
+<thead>
+<tr>
+<th>Class</th>
+<th>Desc</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Semaphore.html">Semaphore</a></td>
+<td>A counting semaphore.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/CountDownLatch.html">CountDownLatch</a></td>
+<td>A synchronization aid that allows one or more threads to wait until a set of operations being performed in other threads completes.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/CyclicBarrier.html">CyclicBarrier</a></td>
+<td>A synchronization aid that allows a set of threads to all wait for each other to reach a common barrier point.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Exchanger.html">Exchanger</a><V></td>
+<td>A synchronization point at which threads can pair and swap elements within pairs.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Phaser.html">Phaser</a></td>
+<td>A reusable synchronization barrier, similar in functionality to <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/CyclicBarrier.html"><code>CyclicBarrier</code></a> and <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/CountDownLatch.html"><code>CountDownLatch</code></a> but supporting more flexible usage.</td>
+</tr>
+</tbody></table>
+<h2 id="queue"><a href="#queue" class="headerlink" title="queue"></a>queue</h2><table>
+<thead>
+<tr>
+<th>Class</th>
+<th>Desc</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/BlockingQueue.html">BlockingQueue</a><E></td>
+<td>A <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/Queue.html"><code>Queue</code></a> that additionally supports operations that wait for the queue to become non-empty when retrieving an element, and wait for space to become available in the queue when storing an element.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ArrayBlockingQueue.html">ArrayBlockingQueue</a><E></td>
+<td>A bounded <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/BlockingQueue.html">blocking queue</a> backed by an array.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/LinkedBlockingQueue.html">LinkedBlockingQueue</a><E></td>
+<td>An optionally-bounded <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/BlockingQueue.html">blocking queue</a> based on linked nodes.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/PriorityBlockingQueue.html">PriorityBlockingQueue</a><E></td>
+<td>An unbounded <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/BlockingQueue.html">blocking queue</a> that uses the same ordering rules as class <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/PriorityQueue.html"><code>PriorityQueue</code></a> and supplies blocking retrieval operations.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/DelayQueue.html">DelayQueue</a>&lt;E extends <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Delayed.html">Delayed</a>&gt;</td>
+<td>An unbounded <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/BlockingQueue.html">blocking queue</a> of <code>Delayed</code> elements, in which an element can only be taken when its delay has expired.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/SynchronousQueue.html">SynchronousQueue</a><E></td>
+<td>A <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/BlockingQueue.html">blocking queue</a> in which each insert operation must wait for a corresponding remove operation by another thread, and vice versa.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ConcurrentLinkedQueue.html">ConcurrentLinkedQueue</a><E></td>
+<td>An unbounded thread-safe <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/Queue.html">queue</a> based on linked nodes.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/TransferQueue.html">TransferQueue</a><E></td>
+<td>A <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/BlockingQueue.html"><code>BlockingQueue</code></a> in which producers may wait for consumers to receive elements.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/TransferQueue.html">TransferQueue</a><E></td>
+<td>A <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/BlockingQueue.html"><code>BlockingQueue</code></a> in which producers may wait for consumers to receive elements.</td>
+</tr>
+</tbody></table>
+<h2 id="map"><a href="#map" class="headerlink" title="map"></a>map</h2><table>
+<thead>
+<tr>
+<th>Class</th>
+<th>Desc</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ConcurrentMap.html">ConcurrentMap</a>&lt;K,V&gt;</td>
+<td>A <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/Map.html"><code>Map</code></a> providing thread safety and atomicity guarantees.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ConcurrentHashMap.html">ConcurrentHashMap</a>&lt;K,V&gt;</td>
+<td>A hash table supporting full concurrency of retrievals and high expected concurrency for updates.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ConcurrentSkipListMap.html">ConcurrentSkipListMap</a>&lt;K,V&gt;</td>
+<td>A scalable concurrent <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ConcurrentNavigableMap.html"><code>ConcurrentNavigableMap</code></a> implementation.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ConcurrentNavigableMap.html">ConcurrentNavigableMap</a>&lt;K,V&gt;</td>
+<td>A <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ConcurrentMap.html"><code>ConcurrentMap</code></a> supporting <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/NavigableMap.html"><code>NavigableMap</code></a> operations, and recursively so for its navigable sub-maps.</td>
+</tr>
+</tbody></table>
+<h2 id="copy-on-write"><a href="#copy-on-write" class="headerlink" title="copy on write"></a>copy on write</h2><table>
+<thead>
+<tr>
+<th>Class</th>
+<th>Desc</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/CopyOnWriteArrayList.html">CopyOnWriteArrayList</a><E></td>
+<td>A thread-safe variant of <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/ArrayList.html"><code>ArrayList</code></a> in which all mutative operations (<code>add</code>, <code>set</code>, and so on) are implemented by making a fresh copy of the underlying array.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/CopyOnWriteArraySet.html">CopyOnWriteArraySet</a><E></td>
+<td>A <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/Set.html"><code>Set</code></a> that uses an internal <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/CopyOnWriteArrayList.html"><code>CopyOnWriteArrayList</code></a> for all of its operations.</td>
+</tr>
+</tbody></table>
+<h2 id="locks"><a href="#locks" class="headerlink" title="locks"></a>locks</h2><table>
+<thead>
+<tr>
+<th>Class</th>
+<th>Desc</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/Condition.html">Condition</a></td>
+<td><code>Condition</code> factors out the <code>Object</code> monitor methods (<a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/lang/Object.html#wait--"><code>wait</code></a>, <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/lang/Object.html#notify--"><code>notify</code></a> and <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/lang/Object.html#notifyAll--"><code>notifyAll</code></a>) into distinct objects to give the effect of having multiple wait-sets per object, by combining them with the use of arbitrary <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/Lock.html"><code>Lock</code></a> implementations.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/Lock.html">Lock</a></td>
+<td><code>Lock</code> implementations provide more extensive locking operations than can be obtained using <code>synchronized</code> methods and statements.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/ReadWriteLock.html">ReadWriteLock</a></td>
+<td>A <code>ReadWriteLock</code> maintains a pair of associated <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/Lock.html"><code>locks</code></a>, one for read-only operations and one for writing.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/AbstractOwnableSynchronizer.html">AbstractOwnableSynchronizer</a></td>
+<td>A synchronizer that may be exclusively owned by a thread.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/AbstractQueuedLongSynchronizer.html">AbstractQueuedLongSynchronizer</a></td>
+<td>A version of <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/AbstractQueuedSynchronizer.html"><code>AbstractQueuedSynchronizer</code></a> in which synchronization state is maintained as a <code>long</code>.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/AbstractQueuedSynchronizer.html">AbstractQueuedSynchronizer</a></td>
+<td>Provides a framework for implementing blocking locks and related synchronizers (semaphores, events, etc) that rely on first-in-first-out (FIFO) wait queues.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/LockSupport.html">LockSupport</a></td>
+<td>Basic thread blocking primitives for creating locks and other synchronization classes.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/ReentrantLock.html">ReentrantLock</a></td>
+<td>A reentrant mutual exclusion <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/Lock.html"><code>Lock</code></a> with the same basic behavior and semantics as the implicit monitor lock accessed using <code>synchronized</code> methods and statements, but with extended capabilities.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/ReentrantReadWriteLock.html">ReentrantReadWriteLock</a></td>
+<td>An implementation of <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/ReadWriteLock.html"><code>ReadWriteLock</code></a> supporting similar semantics to <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/ReentrantLock.html"><code>ReentrantLock</code></a>.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/ReentrantReadWriteLock.ReadLock.html">ReentrantReadWriteLock.ReadLock</a></td>
+<td>The lock returned by method <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/ReentrantReadWriteLock.html#readLock--"><code>ReentrantReadWriteLock.readLock()</code></a>.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/ReentrantReadWriteLock.WriteLock.html">ReentrantReadWriteLock.WriteLock</a></td>
+<td>The lock returned by method <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/ReentrantReadWriteLock.html#writeLock--"><code>ReentrantReadWriteLock.writeLock()</code></a>.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/StampedLock.html">StampedLock</a></td>
+<td>A capability-based lock with three modes for controlling read&#x2F;write access.</td>
+</tr>
+</tbody></table>
+<h2 id="atomic"><a href="#atomic" class="headerlink" title="atomic"></a>atomic</h2><table>
+<thead>
+<tr>
+<th>Class</th>
+<th>Desc</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/atomic/AtomicBoolean.html">AtomicBoolean</a></td>
+<td>A <code>boolean</code> value that may be updated atomically.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/atomic/AtomicInteger.html">AtomicInteger</a></td>
+<td>An <code>int</code> value that may be updated atomically.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/atomic/AtomicIntegerArray.html">AtomicIntegerArray</a></td>
+<td>An <code>int</code> array in which elements may be updated atomically.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/atomic/AtomicIntegerFieldUpdater.html">AtomicIntegerFieldUpdater</a><T></td>
+<td>A reflection-based utility that enables atomic updates to designated <code>volatile int</code> fields of designated classes.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/atomic/AtomicLong.html">AtomicLong</a></td>
+<td>A <code>long</code> value that may be updated atomically.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/atomic/AtomicLongArray.html">AtomicLongArray</a></td>
+<td>A <code>long</code> array in which elements may be updated atomically.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/atomic/AtomicLongFieldUpdater.html">AtomicLongFieldUpdater</a><T></td>
+<td>A reflection-based utility that enables atomic updates to designated <code>volatile long</code> fields of designated classes.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/atomic/AtomicMarkableReference.html">AtomicMarkableReference</a><V></td>
+<td>An <code>AtomicMarkableReference</code> maintains an object reference along with a mark bit, that can be updated atomically.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/atomic/AtomicReference.html">AtomicReference</a><V></td>
+<td>An object reference that may be updated atomically.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/atomic/AtomicReferenceArray.html">AtomicReferenceArray</a><E></td>
+<td>An array of object references in which elements may be updated atomically.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/atomic/AtomicReferenceFieldUpdater.html">AtomicReferenceFieldUpdater</a>&lt;T,V&gt;</td>
+<td>A reflection-based utility that enables atomic updates to designated <code>volatile</code> reference fields of designated classes.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/atomic/AtomicStampedReference.html">AtomicStampedReference</a><V></td>
+<td>An <code>AtomicStampedReference</code> maintains an object reference along with an integer “stamp”, that can be updated atomically.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/atomic/DoubleAccumulator.html">DoubleAccumulator</a></td>
+<td>One or more variables that together maintain a running <code>double</code> value updated using a supplied function.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/atomic/DoubleAdder.html">DoubleAdder</a></td>
+<td>One or more variables that together maintain an initially zero <code>double</code> sum.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/atomic/LongAccumulator.html">LongAccumulator</a></td>
+<td>One or more variables that together maintain a running <code>long</code> value updated using a supplied function.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/atomic/LongAdder.html">LongAdder</a></td>
+<td>One or more variables that together maintain an initially zero <code>long</code> sum.</td>
+</tr>
+</tbody></table>
+<h2 id="task"><a href="#task" class="headerlink" title="task"></a>task</h2><table>
+<thead>
+<tr>
+<th>class</th>
+<th>Desc</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>java.lang.Runnable</td>
+<td></td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Callable.html">Callable</a><V></td>
+<td>A task that returns a result and may throw an exception.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Delayed.html">Delayed</a></td>
+<td>A mix-in style interface for marking objects that should be acted upon after a given delay.</td>
+</tr>
+</tbody></table>
+<h2 id="future-amp-amp-futureTask"><a href="#future-amp-amp-futureTask" class="headerlink" title="future &amp;&amp; futureTask"></a>future &amp;&amp; futureTask</h2><table>
+<thead>
+<tr>
+<th>Class</th>
+<th>Desc</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/CompletionStage.html">CompletionStage</a><T></td>
+<td>A stage of a possibly asynchronous computation, that performs an action or computes a value when another CompletionStage completes.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Future.html">Future</a><V></td>
+<td>A <code>Future</code> represents the result of an asynchronous computation.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/RunnableFuture.html">RunnableFuture</a><V></td>
+<td>A <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Future.html"><code>Future</code></a> that is <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/lang/Runnable.html"><code>Runnable</code></a>.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/RunnableScheduledFuture.html">RunnableScheduledFuture</a><V></td>
+<td>A <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ScheduledFuture.html"><code>ScheduledFuture</code></a> that is <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/lang/Runnable.html"><code>Runnable</code></a>.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ScheduledFuture.html">ScheduledFuture</a><V></td>
+<td>A delayed result-bearing action that can be cancelled.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/FutureTask.html">FutureTask</a><V></td>
+<td>A cancellable asynchronous computation.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/CompletableFuture.html">CompletableFuture</a><T></td>
+<td>A <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Future.html"><code>Future</code></a> that may be explicitly completed (setting its value and status), and may be used as a <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/CompletionStage.html"><code>CompletionStage</code></a>, supporting dependent functions and actions that trigger upon its completion.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/CompletionService.html">CompletionService</a><V></td>
+<td>A service that decouples the production of new asynchronous tasks from the consumption of the results of completed tasks.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/CompletableFuture.AsynchronousCompletionTask.html">CompletableFuture.AsynchronousCompletionTask</a></td>
+<td>A marker interface identifying asynchronous tasks produced by <code>async</code> methods.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ExecutorCompletionService.html">ExecutorCompletionService</a><V></td>
+<td>A <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/CompletionService.html"><code>CompletionService</code></a> that uses a supplied <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executor.html"><code>Executor</code></a> to execute tasks.</td>
+</tr>
+</tbody></table>
+<h2 id="executor"><a href="#executor" class="headerlink" title="executor"></a>executor</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">线程池的使用</span><br><span class="line">   如何合理地配置线程池</span><br><span class="line">   创建的api和参数</span><br><span class="line">   提交任务execute submit的区别</span><br><span class="line">   关闭线程池;shutdown和shutdownNow的区别;当任务是不可中断</span><br><span class="line">   线程池的监控 及 cpu负载监控</span><br><span class="line"></span><br><span class="line">Executor框架的主要成员：</span><br><span class="line">	ThreadPoolExecutor、ScheduledThreadPoolExecutor、 Future接口、Runnable接口、Callable接口和</span><br><span class="line"></span><br><span class="line">Executors</span><br><span class="line">	Executor框架的使用示意图</span><br><span class="line">	业务：Runnable接口或Callable接口封装的</span><br><span class="line">	异步计算的结果：包括接口Future和实现Future接口的FutureTask类；get() cancel()方法</span><br><span class="line">	任务的执行：ExecutorService接口的实现ThreadPoolExecutor和ScheduledThreadPoolExecutor</span><br><span class="line">	Executors可以创建3种类型的 ThreadPoolExecutor：</span><br><span class="line">		SingleThreadExecutors:适用于需要保证顺序地执行各个任务；并且在任意时间点，不会有多 个线程是活动的应用场景</span><br><span class="line">		FixedThreadPool:适用于为了满足资源管理的需求，而需要限制当前线程数量的应用场 景，它适用于负载比较重的服务器</span><br><span class="line">		CachedThreadPool:是大小无界的线程池，适用于执行很多的短期异步任务的小程序，或者 是负载较轻的服务器</span><br><span class="line">	Executors可以创建2种ScheduledThreadPoolExecutor</span><br><span class="line">		ScheduledThreadPoolExecutor适用于需要多个后台线程执行周期任务，同时为了满足资源 管理的需求而需要限制后台线程的数量的应用场景。</span><br><span class="line">		SingleThreadScheduledExecutor适用于需要单个后台线程执行周期任务，同时需要保证顺 序地执行各个任务的应用场景。</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>Class</th>
+<th>Desc</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ThreadFactory.html">ThreadFactory</a></td>
+<td>An object that creates new threads on demand.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executors.html">Executors</a></td>
+<td>Factory and utility methods for <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executor.html"><code>Executor</code></a>, <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ExecutorService.html"><code>ExecutorService</code></a>, <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ScheduledExecutorService.html"><code>ScheduledExecutorService</code></a>, <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ThreadFactory.html"><code>ThreadFactory</code></a>, and <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Callable.html"><code>Callable</code></a> classes defined in this package.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executor.html">Executor</a></td>
+<td>An object that executes submitted <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/lang/Runnable.html"><code>Runnable</code></a> tasks.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ExecutorService.html">ExecutorService</a></td>
+<td>An <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executor.html"><code>Executor</code></a> that provides methods to manage termination and methods that can produce a <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Future.html"><code>Future</code></a> for tracking progress of one or more asynchronous tasks.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/AbstractExecutorService.html">AbstractExecutorService</a></td>
+<td>Provides default implementations of <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ExecutorService.html"><code>ExecutorService</code></a> execution methods.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ScheduledExecutorService.html">ScheduledExecutorService</a></td>
+<td>An <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ExecutorService.html"><code>ExecutorService</code></a> that can schedule commands to run after a given delay, or to execute periodically.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ThreadPoolExecutor.html">ThreadPoolExecutor</a></td>
+<td>An <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ExecutorService.html"><code>ExecutorService</code></a> that executes each submitted task using one of possibly several pooled threads, normally configured using <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executors.html"><code>Executors</code></a> factory methods.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ScheduledThreadPoolExecutor.html">ScheduledThreadPoolExecutor</a></td>
+<td>A <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ThreadPoolExecutor.html"><code>ThreadPoolExecutor</code></a> that can additionally schedule commands to run after a given delay, or to execute periodically.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/RejectedExecutionHandler.html">RejectedExecutionHandler</a></td>
+<td>A handler for tasks that cannot be executed by a <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ThreadPoolExecutor.html"><code>ThreadPoolExecutor</code></a>.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ThreadPoolExecutor.AbortPolicy.html">ThreadPoolExecutor.AbortPolicy</a></td>
+<td>A handler for rejected tasks that throws a <code>RejectedExecutionException</code>.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ThreadPoolExecutor.CallerRunsPolicy.html">ThreadPoolExecutor.CallerRunsPolicy</a></td>
+<td>A handler for rejected tasks that runs the rejected task directly in the calling thread of the <code>execute</code> method, unless the executor has been shut down, in which case the task is discarded.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ThreadPoolExecutor.DiscardOldestPolicy.html">ThreadPoolExecutor.DiscardOldestPolicy</a></td>
+<td>A handler for rejected tasks that discards the oldest unhandled request and then retries <code>execute</code>, unless the executor is shut down, in which case the task is discarded.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ThreadPoolExecutor.DiscardPolicy.html">ThreadPoolExecutor.DiscardPolicy</a></td>
+<td>A handler for rejected tasks that silently discards the rejected task.</td>
+</tr>
+</tbody></table>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">阅读JDK-ThreadPoolExecutor注释:</span><br><span class="line"></span><br><span class="line">- Thread pools address two different problems; 解决的场景</span><br><span class="line">- newCachedThreadPool vs newFixedThreadPool vs newSingleThreadExecutor;常用工具</span><br><span class="line">- Core and maximum pool sizes; 讨论coreSize maxSize queue与创建线程、运行线程的关系</span><br><span class="line">- On-demand construction; prestartCoreThread、prestartAllCoreThreads与提交任务时创建运行线程的区别</span><br><span class="line">- Creating new threads; 默认或自定义的线程工厂类,the thread&#x27;s name, thread group, priority, daemon status</span><br><span class="line">- Keep-alive times;  大于coreSize小于maxSize的线程idle时间到限制情形;小于coreSize的线程idle时间到限制情形;</span><br><span class="line">- Queuing; Direct handoffs(SynchronousQueue);  Unbounded queues(LinkedBlockingQueue); Bounded queues(ArrayBlockingQueue)   关于maxSize与queue类型和queue的限制数量的平衡，及不同平衡下cpu使用率与吞吐量的关系，不同平衡方式的适用场景</span><br><span class="line">- Rejected tasks;  AbortPolicy,CallerRunsPolicy,DiscardPolicy,DiscardOldestPolicy</span><br><span class="line">- Hook methods;扩展beforeExecute,afterExecute;扩展方法中抛出异常的场景</span><br><span class="line">- Queue maintenance;</span><br><span class="line">- Finalization;  不在使用pool,且未shutdown的场景时，如何处理</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="ForkJoin"><a href="#ForkJoin" class="headerlink" title="ForkJoin"></a>ForkJoin</h2><table>
+<thead>
+<tr>
+<th>Class</th>
+<th>Desc</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ForkJoinPool.html">ForkJoinPool</a></td>
+<td>An <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ExecutorService.html"><code>ExecutorService</code></a> for running <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ForkJoinTask.html"><code>ForkJoinTask</code></a>s.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ForkJoinTask.html">ForkJoinTask</a><V></td>
+<td>Abstract base class for tasks that run within a <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ForkJoinPool.html"><code>ForkJoinPool</code></a>.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ForkJoinWorkerThread.html">ForkJoinWorkerThread</a></td>
+<td>A thread managed by a <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ForkJoinPool.html"><code>ForkJoinPool</code></a>, which executes <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ForkJoinTask.html"><code>ForkJoinTask</code></a>s.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ForkJoinPool.ForkJoinWorkerThreadFactory.html">ForkJoinPool.ForkJoinWorkerThreadFactory</a></td>
+<td>Factory for creating new <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ForkJoinWorkerThread.html"><code>ForkJoinWorkerThread</code></a>s.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ForkJoinPool.ManagedBlocker.html">ForkJoinPool.ManagedBlocker</a></td>
+<td>Interface for extending managed parallelism for tasks running in <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ForkJoinPool.html"><code>ForkJoinPool</code></a>s.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/CountedCompleter.html">CountedCompleter</a><T></td>
+<td>A <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ForkJoinTask.html"><code>ForkJoinTask</code></a> with a completion action performed when triggered and there are no remaining pending actions.</td>
+</tr>
+</tbody></table>
+<h2 id="deque-and-others"><a href="#deque-and-others" class="headerlink" title="deque and others"></a>deque and others</h2><table>
+<thead>
+<tr>
+<th>Class</th>
+<th>Desc</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/BlockingDeque.html">BlockingDeque</a><E></td>
+<td>A <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/Deque.html"><code>Deque</code></a> that additionally supports blocking operations that wait for the deque to become non-empty when retrieving an element, and wait for space to become available in the deque when storing an element.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/LinkedBlockingDeque.html">LinkedBlockingDeque</a><E></td>
+<td>An optionally-bounded <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/BlockingDeque.html">blocking deque</a> based on linked nodes.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ConcurrentLinkedDeque.html">ConcurrentLinkedDeque</a><E></td>
+<td>An unbounded concurrent <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/Deque.html">deque</a> based on linked nodes.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ConcurrentSkipListSet.html">ConcurrentSkipListSet</a><E></td>
+<td>A scalable concurrent <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/NavigableSet.html"><code>NavigableSet</code></a> implementation based on a <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ConcurrentSkipListMap.html"><code>ConcurrentSkipListMap</code></a>.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ThreadLocalRandom.html">ThreadLocalRandom</a></td>
+<td>A random number generator isolated to the current thread.</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/TimeUnit.html">TimeUnit</a></td>
+<td>A <code>TimeUnit</code> represents time durations at a given unit of granularity and provides utility methods to convert across units, and to perform timing and delay operations in these units</td>
+</tr>
+</tbody></table>
+<h1 id="ThreadMXBean"><a href="#ThreadMXBean" class="headerlink" title="ThreadMXBean"></a>ThreadMXBean</h1><p>ThreadMXBean  &amp;&amp;  java.lang.management.ThreadInfo</p>
+<p>Some Tips</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">Disruptor的多线程  </span><br><span class="line">Netty中的多线程</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">LinkedTransferQueue用一种追加字节的方式来优化队列出队和入队的性能</span><br><span class="line"></span><br><span class="line">开发技巧: JDK工具的内存填充   Disruptor中的内存填充</span><br><span class="line">Unsafe:cas   Disruptor的多线程  Netty中的多线程</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">性能测试</span><br><span class="line">- 系统负载、cpu利用率、网络流量、系统内存</span><br><span class="line">- 性能指标  测试的目标</span><br><span class="line">- 性能测试工具</span><br><span class="line">- 定位性能瓶颈(数据库链接、线程池、cpu、内存等)，重新调整，再次测试</span><br><span class="line"></span><br><span class="line">线上问题的常见定位思路:日志、系统状态、 dump线程</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h1 id="Pattern"><a href="#Pattern" class="headerlink" title="Pattern"></a>Pattern</h1><p><img src="/flame/images/java/java-concurrency-pattern-outline.png" alt="pattern outline"></p>
+<table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>语境</th>
+<th>问题</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Single Threaded Execution</td>
+<td>多个线程共享实例时</td>
+<td>如果各个线程随时地改变实例状态，实例会失去安全性</td>
+</tr>
+<tr>
+<td>Immutable</td>
+<td>多个线程共享实例，但是实例的状态不会发生变化</td>
+<td>如果使用Single Threaded Execution，吞吐量会下降</td>
+</tr>
+<tr>
+<td>Guarded Suspension</td>
+<td>多个线程共享实例时</td>
+<td>如果各个线程都随意地访问实例，实例会失去安全性</td>
+</tr>
+<tr>
+<td>Balking</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Producer-Consumer</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Read-Write Lock</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Thread-Per-Message</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Worker Pool</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Future</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Two-Phase Termination</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Thread-Specific Storage</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Active Object</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>解决方案</th>
+<th>实现</th>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Single Threaded Execution</td>
+<td>严格规定临界区，确保临界区只能被一个线程执行</td>
+<td>可以使用synchronized来实现</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Immutable</td>
+<td>为了防止不小心写出改变实例状态的代码，请修改代码，让线程无法改变表示实例状态的字段。</td>
+<td>可以使用private隐藏字段，还可以使用final来确保字段无法改变</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Guarded Suspension</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Balking</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Producer-Consumer</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Read-Write Lock</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Thread-Per-Message</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Worker Pool</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Future</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Two-Phase Termination</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Thread-Specific Storage</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Active Object</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/flame/tags/java/" rel="tag"># java</a>
+              <a href="/flame/tags/concurrency/" rel="tag"># concurrency</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/flame/2021/11/29/java/java-features/" rel="prev" title="java features">
+      <i class="fa fa-chevron-left"></i> java features
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/flame/2021/12/03/nginx/nginx/" rel="next" title="nginx">
+      nginx <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Challenges"><span class="nav-number">1.</span> <span class="nav-text">Challenges</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#JMM"><span class="nav-number">2.</span> <span class="nav-text">JMM</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Unsafe-API"><span class="nav-number">3.</span> <span class="nav-text">Unsafe API</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Method-Categories"><span class="nav-number">3.1.</span> <span class="nav-text">Method Categories</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Method-Details"><span class="nav-number">3.2.</span> <span class="nav-text">Method Details</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Reference"><span class="nav-number">3.3.</span> <span class="nav-text">Reference</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Memory-Barriers"><span class="nav-number">4.</span> <span class="nav-text">Memory Barriers</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Threads-Basics"><span class="nav-number">5.</span> <span class="nav-text">Threads  Basics</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#java-lang-Object"><span class="nav-number">5.1.</span> <span class="nav-text">java.lang.Object</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#java-lang-Thread"><span class="nav-number">5.2.</span> <span class="nav-text">java.lang.Thread</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%AD%E6%96%AD"><span class="nav-number">5.3.</span> <span class="nav-text">中断</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Reference-1"><span class="nav-number">5.4.</span> <span class="nav-text">Reference</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Concurrent-Package"><span class="nav-number">6.</span> <span class="nav-text">Concurrent Package</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#AQS"><span class="nav-number">6.1.</span> <span class="nav-text">AQS</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#usual-sync-tools"><span class="nav-number">6.2.</span> <span class="nav-text">usual sync tools</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#queue"><span class="nav-number">6.3.</span> <span class="nav-text">queue</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#map"><span class="nav-number">6.4.</span> <span class="nav-text">map</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#copy-on-write"><span class="nav-number">6.5.</span> <span class="nav-text">copy on write</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#locks"><span class="nav-number">6.6.</span> <span class="nav-text">locks</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#atomic"><span class="nav-number">6.7.</span> <span class="nav-text">atomic</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#task"><span class="nav-number">6.8.</span> <span class="nav-text">task</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#future-amp-amp-futureTask"><span class="nav-number">6.9.</span> <span class="nav-text">future &amp;&amp; futureTask</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#executor"><span class="nav-number">6.10.</span> <span class="nav-text">executor</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ForkJoin"><span class="nav-number">6.11.</span> <span class="nav-text">ForkJoin</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#deque-and-others"><span class="nav-number">6.12.</span> <span class="nav-text">deque and others</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#ThreadMXBean"><span class="nav-number">7.</span> <span class="nav-text">ThreadMXBean</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Pattern"><span class="nav-number">8.</span> <span class="nav-text">Pattern</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="flame"
+      src="/flame/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">flame</p>
+  <div class="site-description" itemprop="description">读书百遍 其义自见</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/flame/archives/">
+        
+          <span class="site-state-item-count">22</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/flame/categories/">
+          
+        <span class="site-state-item-count">36</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/flame/tags/">
+          
+        <span class="site-state-item-count">22</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+      
+      <!--网易云音乐插件-->
+      <!-- require APlayer -->
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.css">
+      <script src="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.js"></script>
+      <!-- require MetingJS-->
+      <script src="https://cdn.jsdelivr.net/npm/meting@2.0.1/dist/Meting.min.js"></script>
+      <!--网易云playlist外链地址-->
+      <div style="margin-top: 20px;">
+        <meting-js
+            server="netease"
+            type="playlist"
+            id="427009153"
+            mini="false"
+            fixed="false"
+            list-folded="true"
+            autoplay="false"
+            volume="0.4"
+            theme="#FADFA3"
+            order="list"
+            loop="all"
+            preload="auto"
+            mutex="true">
+        </meting-js>
+      </div>
+
+    </div>
+
+
+
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">flame</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">150k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">2:16</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/flame/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/theme-next/theme-next-pjax@0/pjax.min.js"></script>
+  <script src="/flame/lib/velocity/velocity.min.js"></script>
+  <script src="/flame/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/flame/js/utils.js"></script>
+
+<script src="/flame/js/motion.js"></script>
+
+
+<script src="/flame/js/schemes/pisces.js"></script>
+
+
+<script src="/flame/js/next-boot.js"></script>
+
+<script src="/flame/js/bookmark.js"></script>
+
+  <script>
+var pjax = new Pjax({
+  selectors: [
+    'head title',
+    '#page-configurations',
+    '.content-wrap',
+    '.post-toc-wrap',
+    '.languages',
+    '#pjax'
+  ],
+  switches: {
+    '.post-toc-wrap': Pjax.switches.innerHTML
+  },
+  analytics: false,
+  cacheBust: false,
+  scrollTo : !CONFIG.bookmark.enable
+});
+
+window.addEventListener('pjax:success', () => {
+  document.querySelectorAll('script[data-pjax], script#page-configurations, #pjax script').forEach(element => {
+    var code = element.text || element.textContent || element.innerHTML || '';
+    var parent = element.parentNode;
+    parent.removeChild(element);
+    var script = document.createElement('script');
+    if (element.id) {
+      script.id = element.id;
+    }
+    if (element.className) {
+      script.className = element.className;
+    }
+    if (element.type) {
+      script.type = element.type;
+    }
+    if (element.src) {
+      script.src = element.src;
+      // Force synchronous loading of peripheral JS.
+      script.async = false;
+    }
+    if (element.dataset.pjax !== undefined) {
+      script.dataset.pjax = '';
+    }
+    if (code !== '') {
+      script.appendChild(document.createTextNode(code));
+    }
+    parent.appendChild(script);
+  });
+  NexT.boot.refresh();
+  // Define Motion Sequence & Bootstrap Motion.
+  if (CONFIG.motion.enable) {
+    NexT.motion.integrator
+      .init()
+      .add(NexT.motion.middleWares.subMenu)
+      .add(NexT.motion.middleWares.postList)
+      .bootstrap();
+  }
+  NexT.utils.updateSidebarPosition();
+});
+</script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/flame/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+<script data-pjax>
+if (document.querySelectorAll('pre.mermaid').length) {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mermaid@8/dist/mermaid.min.js', () => {
+    mermaid.initialize({
+      theme    : 'default',
+      logLevel : 3,
+      flowchart: { curve     : 'linear' },
+      gantt    : { axisFormat: '%m/%d/%Y' },
+      sequence : { actorMargin: 50 }
+    });
+  }, window.mermaid);
+}
+</script>
+
+
+    <div id="pjax">
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID    : 'ea4dd98148ad4427dc12',
+      clientSecret: '6b19239ab40d57eb79685e3e48fd6f0e54bc3b03',
+      repo        : 'flame',
+      owner       : 'flame-bcc',
+      admin       : ['agui93'],
+      id          : 'c120c633b12972f3370491e73ec55d70',
+        language: 'zh-CN',
+      distractionFreeMode: false
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+    </div>
+</body>
+</html>

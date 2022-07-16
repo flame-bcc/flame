@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/flame/images/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/flame/images/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/flame/images/favicon-16x16.png">
+  <link rel="mask-icon" href="/flame/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/flame/css/main.css">
+
+
+<link rel="stylesheet" href="/flame/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"flame-bcc.github.io","root":"/flame/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","width":260,"display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"default"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":true,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":true,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.json"};
+  </script>
+
+  <meta name="description" content="前言本篇博客是对Redis的总结.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redis">
+<meta property="og:url" content="https://flame-bcc.github.io/flame/2021/11/10/redis/redis/index.html">
+<meta property="og:site_name" content="flame">
+<meta property="og:description" content="前言本篇博客是对Redis的总结.">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://flame-bcc.github.io/flame/images/redis/redis-five-data-structure.png">
+<meta property="og:image" content="https://flame-bcc.github.io/flame/images/redis/redis-string-command-impl.png">
+<meta property="og:image" content="https://flame-bcc.github.io/flame/images/redis/redis-string-time-complexity.png">
+<meta property="og:image" content="https://flame-bcc.github.io/flame/images/redis/redis-hash-command-impl.png">
+<meta property="og:image" content="https://flame-bcc.github.io/flame/images/redis/redis-hash-command-time-complexity.png">
+<meta property="og:image" content="https://flame-bcc.github.io/flame/images/redis/redis-list-command-impl.png">
+<meta property="og:image" content="https://flame-bcc.github.io/flame/images/redis/redis-list-command-time-complexity.png">
+<meta property="og:image" content="https://flame-bcc.github.io/flame/images/redis/redis-set-command-impl.png">
+<meta property="og:image" content="https://flame-bcc.github.io/flame/images/redis/redis-set-command-time-complexity.png">
+<meta property="og:image" content="https://flame-bcc.github.io/flame/images/redis/redis-zset-command-impl.png">
+<meta property="og:image" content="https://flame-bcc.github.io/flame/images/redis/redis-zset-command-time-complexity.png">
+<meta property="article:published_time" content="2021-11-10T13:40:10.000Z">
+<meta property="article:modified_time" content="2022-07-16T09:47:47.901Z">
+<meta property="article:author" content="flame">
+<meta property="article:tag" content="redis">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://flame-bcc.github.io/flame/images/redis/redis-five-data-structure.png">
+
+<link rel="canonical" href="https://flame-bcc.github.io/flame/2021/11/10/redis/redis/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Redis | flame</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/flame/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">flame</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">路漫漫其修远兮 吾将上下而求索</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/flame/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/flame/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/flame/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/flame/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/flame/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/agui93" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://flame-bcc.github.io/flame/2021/11/10/redis/redis/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/flame/images/avatar.jpeg">
+      <meta itemprop="name" content="flame">
+      <meta itemprop="description" content="读书百遍 其义自见">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="flame">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Redis
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2021-11-10 21:40:10" itemprop="dateCreated datePublished" datetime="2021-11-10T21:40:10+08:00">2021-11-10</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-07-16 17:47:47" itemprop="dateModified" datetime="2022-07-16T17:47:47+08:00">2022-07-16</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/flame/categories/redis/" itemprop="url" rel="index"><span itemprop="name">redis</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>本篇博客是对Redis的总结.</p>
+<span id="more"></span>
+
+
+
+<h1 id="Redis简述"><a href="#Redis简述" class="headerlink" title="Redis简述"></a>Redis简述</h1><blockquote>
+<p>Redis is an open source (BSD licensed), in-memory <strong>data structure store</strong>, used as a database, cache, and message broker.</p>
+<p>Redis provides data structures such as <a target="_blank" rel="noopener" href="https://redis.io/topics/data-types-intro#strings">strings</a>, <a target="_blank" rel="noopener" href="https://redis.io/topics/data-types-intro#hashes">hashes</a>, <a target="_blank" rel="noopener" href="https://redis.io/topics/data-types-intro#lists">lists</a>, <a target="_blank" rel="noopener" href="https://redis.io/topics/data-types-intro#sets">sets</a>, <a target="_blank" rel="noopener" href="https://redis.io/topics/data-types-intro#sorted-sets">sorted sets</a> with range queries, <a target="_blank" rel="noopener" href="https://redis.io/topics/data-types-intro#bitmaps">bitmaps</a>, <a target="_blank" rel="noopener" href="https://redis.io/topics/data-types-intro#hyperloglogs">hyperloglogs</a>, <a target="_blank" rel="noopener" href="https://redis.io/commands/geoadd">geospatial indexes</a>, and <a target="_blank" rel="noopener" href="https://redis.io/topics/streams-intro">streams</a>. Redis has built-in <a target="_blank" rel="noopener" href="https://redis.io/topics/replication">replication</a>, <a target="_blank" rel="noopener" href="https://redis.io/commands/eval">Lua scripting</a>, <a target="_blank" rel="noopener" href="https://redis.io/topics/lru-cache">LRU eviction</a>, <a target="_blank" rel="noopener" href="https://redis.io/topics/transactions">transactions</a>, and different levels of <a target="_blank" rel="noopener" href="https://redis.io/topics/persistence">on-disk persistence</a>, and provides high availability via <a target="_blank" rel="noopener" href="https://redis.io/topics/sentinel">Redis Sentinel</a> and automatic partitioning with <a target="_blank" rel="noopener" href="https://redis.io/topics/cluster-tutorial">Redis Cluster</a>.</p>
+<p>Redis works with an <strong>in-memory dataset</strong>. Depending on your use case, you can persist your data either by periodically <a target="_blank" rel="noopener" href="https://redis.io/topics/persistence#snapshotting">dumping the dataset to disk</a> or by <a target="_blank" rel="noopener" href="https://redis.io/topics/persistence#append-only-file">appending each command to a disk-based log</a>. You can also disable persistence if you just need a feature-rich, networked, in-memory cache.</p>
+<p>Redis also supports <a target="_blank" rel="noopener" href="https://redis.io/topics/replication">asynchronous replication</a>, with very fast non-blocking first synchronization, auto-reconnection with partial resynchronization on net split.</p>
+<p>Other features include:</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://redis.io/topics/transactions">Transactions</a></li>
+<li><a target="_blank" rel="noopener" href="https://redis.io/topics/pubsub">Pub&#x2F;Sub</a></li>
+<li><a target="_blank" rel="noopener" href="https://redis.io/commands/eval">Lua scripting</a></li>
+<li><a target="_blank" rel="noopener" href="https://redis.io/commands/expire">Keys with a limited time-to-live</a></li>
+<li><a target="_blank" rel="noopener" href="https://redis.io/topics/lru-cache">LRU eviction of keys</a></li>
+<li><a target="_blank" rel="noopener" href="https://redis.io/topics/sentinel">Automatic failover</a></li>
+</ul>
+</blockquote>
+<br/>
+
+<p><strong>典型应用场景</strong></p>
+<ul>
+<li>缓存</li>
+<li>排行榜系统</li>
+<li>计数器</li>
+<li>社交网络</li>
+<li>消息队列系统</li>
+</ul>
+<br/>
+
+<p><strong>安装和启动</strong></p>
+<p>有三种方法启动Redis：默认配置、运行配置、配置文件启动。生产环境中建议使用配置文件启动Redis。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">默认配置启动</span></span><br><span class="line">redis-server</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">运行配置</span></span><br><span class="line">redis-server --configKey1 configValue1 --configKey2 configValue2</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">使用配置文件启动Redis</span></span><br><span class="line">redis-server  /dir/redis.conf</span><br></pre></td></tr></table></figure>
+
+
+
+<h1 id="Redis架构模型"><a href="#Redis架构模型" class="headerlink" title="Redis架构模型"></a>Redis架构模型</h1><p>Redis使用了<strong>单线程架构</strong>和<strong>I&#x2F;O多路复用</strong>模型来实现高性能的<strong>内存数据库</strong>服务。<br>Redis单线程架构：保证server端所有命令在一个队列里排队等待被执行。<br>Redis事件处理模型：结合I&#x2F;O多路复用模型，将连接、读写、关闭都转换为事件，不在网络I&#x2F;O上浪费过多的时间。</p>
+<p><strong>单线程机制的问题</strong><br>对于每个命令的执行时间是有要求的。如果某个命令执行过长，会造成其他命令的阻塞，对于Redis这种高性能的服务来说是致命的，所以Redis是面向快速执行场景的数据库。</p>
+<p><strong>为什么Redis使用单线程模型会达到每秒万级别的处理能力呢？</strong><br>1.纯内存访问，内存的响应时长大约为100纳秒，这是Redis达到每秒万级别访问的重要基础<br>2.非阻塞I&#x2F;O<br>3.单线程避免了线程切换和竞态产生的消耗</p>
+<h1 id="Redis基础"><a href="#Redis基础" class="headerlink" title="Redis基础"></a>Redis基础</h1><p>数据结构和内部编码<br>1.多种内部编码实现可以在不同场景下发挥各自的优势<br>2.可以改进内部编码，而对外的数据结构和命令没有影响</p>
+<p><img src="/flame/images/redis/redis-five-data-structure.png" alt="Redis数据结构和内部编码"></p>
+<h2 id="字符串命令"><a href="#字符串命令" class="headerlink" title="字符串命令"></a>字符串命令</h2><p>Redis字符串命令的实现<br><img src="/flame/images/redis/redis-string-command-impl.png" alt="Redis字符串命令的实现"></p>
+<p>Redis字符串命令时间复杂度<br><img src="/flame/images/redis/redis-string-time-complexity.png" alt="Redis字符串命令时间复杂度"></p>
+<h2 id="哈希命令"><a href="#哈希命令" class="headerlink" title="哈希命令"></a>哈希命令</h2><p><img src="/flame/images/redis/redis-hash-command-impl.png" alt="Redis哈希命令的实现"></p>
+<p><img src="/flame/images/redis/redis-hash-command-time-complexity.png" alt="Redis哈希命令时间复杂度"></p>
+<h2 id="列表命令"><a href="#列表命令" class="headerlink" title="列表命令"></a>列表命令</h2><p><img src="/flame/images/redis/redis-list-command-impl.png" alt="Redis列表命令的实现"></p>
+<p><img src="/flame/images/redis/redis-list-command-time-complexity.png" alt="Redis列表命令时间复杂度"></p>
+<h2 id="集合命令"><a href="#集合命令" class="headerlink" title="集合命令"></a>集合命令</h2><p><img src="/flame/images/redis/redis-set-command-impl.png" alt="Redis集合命令的实现"></p>
+<p><img src="/flame/images/redis/redis-set-command-time-complexity.png" alt="Redis集合命令的时间复杂度"></p>
+<h2 id="有序集合命令"><a href="#有序集合命令" class="headerlink" title="有序集合命令"></a>有序集合命令</h2><p><img src="/flame/images/redis/redis-zset-command-impl.png" alt="Redis有序集合命令的实现"></p>
+<p><img src="/flame/images/redis/redis-zset-command-time-complexity.png" alt="Redis有序集合命令的时间复杂度"></p>
+<h2 id="键管理"><a href="#键管理" class="headerlink" title="键管理"></a>键管理</h2><p>基本命令：type、 object、del、exists<br>键随机：randomkey<br>键重命名：rename、renamenx<br>键过期：expire、ttl、expireat、pexpire、pexpireat、pttl、persis<br>迁移键：move、dump+restore、migrate <strong>(迁移的原理)</strong><br>遍历键：keys和scan</p>
+<p>切换数据库：select dbIndex<br>清除数据库：flushdb&#x2F;flushall命令用于清除数据库，两者的区别的是flushdb只清除当 前数据库，flushall会清除所有数据库，<strong>误操作的危害，误操作的避免策略</strong></p>
+<h2 id="Bitmaps"><a href="#Bitmaps" class="headerlink" title="Bitmaps"></a>Bitmaps</h2><blockquote>
+<p>Bitmaps are not an actual data type, but a set of bit-oriented operations defined on the String type.<br>Since strings are binary safe blobs and their maximum length is 512 MB, they are suitable to set up to 2^32 different bits.</p>
+</blockquote>
+<p>Bitmaps可以用来做独立用户统计，有效节省内存。<br>Bitmaps中setbit一个大的偏移量时，由于申请大量内存会导致阻塞。</p>
+<h2 id="HyperLogLog"><a href="#HyperLogLog" class="headerlink" title="HyperLogLog"></a>HyperLogLog</h2><p>通过HyperLogLog可以利用极小的内存空间完成独立总数 的统计，数据集可以是IP、Email、ID等.<br>HyperLogLog虽然在统计独立总量时存在一定的误差，但是节省的内存量十分惊人。</p>
+<h2 id="GEO"><a href="#GEO" class="headerlink" title="GEO"></a>GEO</h2><p>GEO支持存储地理位置信息，用来实现基于地理位置信息的应用，底层实现是zset。例如实现附近位置、摇一摇功能。</p>
+<p>GEO相关命令细节</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="http://www.redis.cn/commands/geoadd.html">GEOADD</a></li>
+<li><a target="_blank" rel="noopener" href="http://www.redis.cn/commands/geodist.html">GEODIST</a></li>
+<li><a target="_blank" rel="noopener" href="http://www.redis.cn/commands/geohash.html">GEOHASH</a></li>
+<li><a target="_blank" rel="noopener" href="http://www.redis.cn/commands/geopos.html">GEOPOS</a></li>
+<li><a target="_blank" rel="noopener" href="http://www.redis.cn/commands/georadius.html">GEORADIUS</a></li>
+<li><a target="_blank" rel="noopener" href="http://www.redis.cn/commands/georadiusbymember.html">GEORADIUSBYMEMBER</a></li>
+</ul>
+<h1 id="Redis-Shell"><a href="#Redis-Shell" class="headerlink" title="Redis Shell"></a>Redis Shell</h1><table>
+<thead>
+<tr>
+<th>shell</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>redis-server</td>
+<td>启动redis</td>
+</tr>
+<tr>
+<td>redis-cli</td>
+<td>Redis命令行客户端</td>
+</tr>
+<tr>
+<td>redis-benchmark</td>
+<td>Redis基准测试工具</td>
+</tr>
+<tr>
+<td>redis-check-aof</td>
+<td>Redis AOF持久化文件检测和修复工具</td>
+</tr>
+<tr>
+<td>redis-check-dump</td>
+<td>Redis RDB持久化文件检测和修复工具</td>
+</tr>
+<tr>
+<td>redis-sentinel</td>
+<td>启动Redis Sentinel</td>
+</tr>
+</tbody></table>
+<h2 id="redis-server"><a href="#redis-server" class="headerlink" title="redis-server"></a>redis-server</h2><p>redis-server除了启动Redis外,  可以用–test-memory来检测当前操作系统能否稳定地分配指定容量的内存给Redis，通过这种检测可以有效避免因为内存问题造成Redis崩溃。<br>通常无需每次开启Redis实例时都执行–test-memory选项，该功能更偏向于调试和测试，例如，想快速占满机器内存做一些极端条件的测试。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">检测当前操作系统能否提供1G的内存给Redis</span></span><br><span class="line">redis-server --test-memory 1024</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">--<span class="built_in">help</span>: 查看redis-server命令的Usage</span></span><br><span class="line">redis-server --help</span><br><span class="line">Usage: ./redis-server [/path/to/redis.conf] [options]</span><br><span class="line">       ./redis-server - (read config from stdin)</span><br><span class="line">       ./redis-server -v or --version</span><br><span class="line">       ./redis-server -h or --help</span><br><span class="line">       ./redis-server --test-memory &lt;megabytes&gt;</span><br><span class="line"></span><br><span class="line">Examples:</span><br><span class="line">       ./redis-server (run the server with default conf)</span><br><span class="line">       ./redis-server /etc/redis/6379.conf</span><br><span class="line">       ./redis-server --port 7777</span><br><span class="line">       ./redis-server --port 7777 --replicaof 127.0.0.1 8888</span><br><span class="line">       ./redis-server /etc/myredis.conf --loglevel verbose</span><br><span class="line"></span><br><span class="line">Sentinel mode:</span><br><span class="line">       ./redis-server /etc/sentinel.conf --sentinel</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="redis-benchmark"><a href="#redis-benchmark" class="headerlink" title="redis-benchmark"></a>redis-benchmark</h2><p>redis-benchmark可以为Redis做基准性能测试，它提供了很多选项帮助开发和运维人员测试Redis的相关性能</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">-c（clients）选项代表客户端的并发数量（默认是50）</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">-n（num）选项代表客户端请求总量（默认是100000）</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">redis-benchmark -c 10 -n 200: 代表10各个客户端同时请求Redis，一共执行2000次</span></span><br><span class="line">redis-benchmark -c 10 -n 2000</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">-q选项仅仅显示redis-benchmark的requests per second信息</span></span><br><span class="line">redis-benchmark -c 10 -n 2000 -q</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">-r（random）选项，可以向Redis插入更多随机的键。-r选项会在key、counter键上加一个12位的后缀，-r10000代表只对后四位做随机处理（-r不是随机数的个数）</span></span><br><span class="line">redis-benchmark -c 10 -n 2000 -r 10000</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">-P选项代表每个请求pipeline的数据量（默认为1）</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">-k &lt;boolean&gt;选项: 代表客户端是否使用keepalive，1为使用，0为不使用，默认值为1</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">-t选项可以对指定命令进行基准测试</span></span><br><span class="line">redis-benchmark -t get,set -q</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">--csv选项会将结果按照csv格式输出，便于后续处理</span></span><br><span class="line">redis-benchmark -t get,set --csv</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">--<span class="built_in">help</span>选项: 查看redis-benchmark命令使用详情</span></span><br><span class="line">redis-benchmark --help</span><br><span class="line"></span><br><span class="line">Usage: redis-benchmark [-h &lt;host&gt;] [-p &lt;port&gt;] [-c &lt;clients&gt;] [-n &lt;requests&gt;] [-k &lt;boolean&gt;]</span><br><span class="line"></span><br><span class="line"> -h &lt;hostname&gt;      Server hostname (default 127.0.0.1)</span><br><span class="line"> -p &lt;port&gt;          Server port (default 6379)</span><br><span class="line"> -s &lt;socket&gt;        Server socket (overrides host and port)</span><br><span class="line"> -a &lt;password&gt;      Password for Redis Auth</span><br><span class="line"> -c &lt;clients&gt;       Number of parallel connections (default 50)</span><br><span class="line"> -n &lt;requests&gt;      Total number of requests (default 100000)</span><br><span class="line"> -d &lt;size&gt;          Data size of SET/GET value in bytes (default 3)</span><br><span class="line"> --dbnum &lt;db&gt;       SELECT the specified db number (default 0)</span><br><span class="line"> -k &lt;boolean&gt;       1=keep alive 0=reconnect (default 1)</span><br><span class="line"> -r &lt;keyspacelen&gt;   Use random keys for SET/GET/INCR, random values for SADD</span><br><span class="line">  Using this option the benchmark will expand the string __rand_int__</span><br><span class="line">  inside an argument with a 12 digits number in the specified range</span><br><span class="line">  from 0 to keyspacelen-1. The substitution changes every time a command</span><br><span class="line">  is executed. Default tests use this to hit random keys in the</span><br><span class="line">  specified range.</span><br><span class="line"> -P &lt;numreq&gt;        Pipeline &lt;numreq&gt; requests. Default 1 (no pipeline).</span><br><span class="line"> -e                 If server replies with errors, show them on stdout.</span><br><span class="line">                    (no more than 1 error per second is displayed)</span><br><span class="line"> -q                 Quiet. Just show query/sec values</span><br><span class="line"> --csv              Output in CSV format</span><br><span class="line"> -l                 Loop. Run the tests forever</span><br><span class="line"> -t &lt;tests&gt;         Only run the comma separated list of tests. The test</span><br><span class="line">                    names are the same as the ones produced as output.</span><br><span class="line"> -I                 Idle mode. Just open N idle connections and wait.</span><br><span class="line"></span><br><span class="line">Examples:</span><br><span class="line"> Run the benchmark with the default configuration against 127.0.0.1:6379:</span><br><span class="line"><span class="meta prompt_">   $ </span><span class="language-bash">redis-benchmark</span></span><br><span class="line"> Use 20 parallel clients, for a total of 100k requests, against 192.168.1.1:</span><br><span class="line"><span class="meta prompt_">   $ </span><span class="language-bash">redis-benchmark -h 192.168.1.1 -p 6379 -n 100000 -c 20</span></span><br><span class="line"> Fill 127.0.0.1:6379 with about 1 million keys only using the SET test:</span><br><span class="line"><span class="meta prompt_">   $ </span><span class="language-bash">redis-benchmark -t <span class="built_in">set</span> -n 1000000 -r 100000000</span></span><br><span class="line"> Benchmark 127.0.0.1:6379 for a few commands producing CSV output:</span><br><span class="line"><span class="meta prompt_">   $ </span><span class="language-bash">redis-benchmark -t ping,<span class="built_in">set</span>,get -n 100000 --csv</span></span><br><span class="line"> Benchmark a specific command line:</span><br><span class="line"><span class="meta prompt_">   $ </span><span class="language-bash">redis-benchmark -r 10000 -n 10000 <span class="built_in">eval</span> <span class="string">&#x27;return redis.call(&quot;ping&quot;)&#x27;</span> 0</span></span><br><span class="line"> Fill a list with 10000 random elements:</span><br><span class="line"><span class="meta prompt_">   $ </span><span class="language-bash">redis-benchmark -r 10000 -n 10000 lpush mylist __rand_int__</span></span><br><span class="line"> On user specified command lines __rand_int__ is replaced with a random integer</span><br><span class="line"> with a range of values selected by the -r option.</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h2 id="redis-cli"><a href="#redis-cli" class="headerlink" title="redis-cli"></a>redis-cli</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">-r选项: 代表将命令执行多次</span></span><br><span class="line">redis-cli -r 3 ping</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">-i选项: 代表每隔几秒执行一次命令</span></span><br><span class="line">redis-cli -r 5 -i 1 ping</span><br><span class="line">redis-cli -r 5 -i 0.01 ping</span><br><span class="line"></span><br><span class="line">redis-cli -r 100 -i 1 info | grep used_memory_human</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">-x选项: 代表从标准输入读取数据作为redis-cli的最后一个参数</span></span><br><span class="line">echo &quot;world&quot; | redis-cli -x set hello</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">-c（cluster）选项是连接Redis Cluster节点时需要使用的，-c选项可以防止moved和ask异常</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">有了这个选项就不需要手动输入auth命令</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">--slave选项是把当前客户端模拟成当前Redis节点的从节点，可以用来获取当前Redis节点的更新操作，合理的利用这个选项可以记录当前连接Redis节点的一些更新操作。背后原理: Redis复制</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">--rdb选项会请求Redis实例生成并发送RDB持久化文件，保存在本地。可使用它做持久化文件的定期备份。</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">--pipe选项用于将命令封装成Redis通信协议定义的数据格式，批量发送给Redis执行</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">--bigkeys选项使用scan命令对Redis的键进行采样，从中找到内存占用比较大的键值，这些键可能是系统的瓶颈。</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">--<span class="built_in">eval</span>选项用于执行指定Lua脚本</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">--latency:  latency有三个选项，分别是--latency、--latency-history、--latency-dist。它们都可以检测网络延迟，对于Redis的开发和运维非常有帮助</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">--<span class="built_in">stat</span>选项可以实时获取Redis的重要统计信息，虽然info命令中的统计信息更全，但是能实时看到一些增量的数据（例如requests）对于Redis的运维还是有一定帮助的</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">--raw和--no-raw: --no-raw选项要求命令的返回结果必须是原始的格式，--raw选项要求返回格式化后的结果</span></span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">--<span class="built_in">help</span>选项: 查看redis-cli命令的使用详情</span></span><br><span class="line">redis-cli --help </span><br><span class="line"></span><br><span class="line">Usage: redis-cli [OPTIONS] [cmd [arg [arg ...]]]</span><br><span class="line">  -h &lt;hostname&gt;      Server hostname (default: 127.0.0.1).</span><br><span class="line">  -p &lt;port&gt;          Server port (default: 6379).</span><br><span class="line">  -s &lt;socket&gt;        Server socket (overrides hostname and port).</span><br><span class="line">  -a &lt;password&gt;      Password to use when connecting to the server.</span><br><span class="line">                     You can also use the REDISCLI_AUTH environment</span><br><span class="line">                     variable to pass this password more safely</span><br><span class="line">                     (if both are used, this argument takes predecence).</span><br><span class="line">  -u &lt;uri&gt;           Server URI.</span><br><span class="line">  -r &lt;repeat&gt;        Execute specified command N times.</span><br><span class="line">  -i &lt;interval&gt;      When -r is used, waits &lt;interval&gt; seconds per command.</span><br><span class="line">                     It is possible to specify sub-second times like -i 0.1.</span><br><span class="line">  -n &lt;db&gt;            Database number.</span><br><span class="line">  -x                 Read last argument from STDIN.</span><br><span class="line">  -d &lt;delimiter&gt;     Multi-bulk delimiter in for raw formatting (default: \n).</span><br><span class="line">  -c                 Enable cluster mode (follow -ASK and -MOVED redirections).</span><br><span class="line">  --raw              Use raw formatting for replies (default when STDOUT is</span><br><span class="line">                     not a tty).</span><br><span class="line">  --no-raw           Force formatted output even when STDOUT is not a tty.</span><br><span class="line">  --csv              Output in CSV format.</span><br><span class="line">  --stat             Print rolling stats about server: mem, clients, ...</span><br><span class="line">  --latency          Enter a special mode continuously sampling latency.</span><br><span class="line">                     If you use this mode in an interactive session it runs</span><br><span class="line">                     forever displaying real-time stats. Otherwise if --raw or</span><br><span class="line">                     --csv is specified, or if you redirect the output to a non</span><br><span class="line">                     TTY, it samples the latency for 1 second (you can use</span><br><span class="line">                     -i to change the interval), then produces a single output</span><br><span class="line">                     and exits.</span><br><span class="line">  --latency-history  Like --latency but tracking latency changes over time.</span><br><span class="line">                     Default time interval is 15 sec. Change it using -i.</span><br><span class="line">  --latency-dist     Shows latency as a spectrum, requires xterm 256 colors.</span><br><span class="line">                     Default time interval is 1 sec. Change it using -i.</span><br><span class="line">  --lru-test &lt;keys&gt;  Simulate a cache workload with an 80-20 distribution.</span><br><span class="line">  --replica          Simulate a replica showing commands received from the master.</span><br><span class="line">  --rdb &lt;filename&gt;   Transfer an RDB dump from remote server to local file.</span><br><span class="line">  --pipe             Transfer raw Redis protocol from stdin to server.</span><br><span class="line">  --pipe-timeout &lt;n&gt; In --pipe mode, abort with error if after sending all data.</span><br><span class="line">                     no reply is received within &lt;n&gt; seconds.</span><br><span class="line">                     Default timeout: 30. Use 0 to wait forever.</span><br><span class="line">  --bigkeys          Sample Redis keys looking for keys with many elements (complexity).</span><br><span class="line">  --memkeys          Sample Redis keys looking for keys consuming a lot of memory.</span><br><span class="line">  --memkeys-samples &lt;n&gt; Sample Redis keys looking for keys consuming a lot of memory.</span><br><span class="line">                     And define number of key elements to sample</span><br><span class="line">  --hotkeys          Sample Redis keys looking for hot keys.</span><br><span class="line">                     only works when maxmemory-policy is *lfu.</span><br><span class="line">  --scan             List all keys using the SCAN command.</span><br><span class="line">  --pattern &lt;pat&gt;    Useful with --scan to specify a SCAN pattern.</span><br><span class="line">  --intrinsic-latency &lt;sec&gt; Run a test to measure intrinsic system latency.</span><br><span class="line">                     The test will run for the specified amount of seconds.</span><br><span class="line">  --eval &lt;file&gt;      Send an EVAL command using the Lua script at &lt;file&gt;.</span><br><span class="line">  --ldb              Used with --eval enable the Redis Lua debugger.</span><br><span class="line">  --ldb-sync-mode    Like --ldb but uses the synchronous Lua debugger, in</span><br><span class="line">                     this mode the server is blocked and script changes are</span><br><span class="line">                     not rolled back from the server memory.</span><br><span class="line">  --cluster &lt;command&gt; [args...] [opts...]</span><br><span class="line">                     Cluster Manager command and arguments (see below).</span><br><span class="line">  --verbose          Verbose mode.</span><br><span class="line">  --no-auth-warning  Don&#x27;t show warning message when using password on command</span><br><span class="line">                     line interface.</span><br><span class="line">  --help             Output this help and exit.</span><br><span class="line">  --version          Output version and exit.</span><br><span class="line"></span><br><span class="line">Cluster Manager Commands:</span><br><span class="line">  Use --cluster help to list all available cluster manager commands.</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h1 id="Pipeline"><a href="#Pipeline" class="headerlink" title="Pipeline"></a>Pipeline</h1><p>Pipeline可以有效减少RTT次数，但每次Pipeline的命令数量不能无节制。</p>
+<h1 id="事务和Lua"><a href="#事务和Lua" class="headerlink" title="事务和Lua"></a>事务和Lua</h1><p>Redis可以使用Lua脚本创造出原子、高效、自定义命令组合。<br>Redis执行Lua脚本有两种方法：eval和evalsha。</p>
+<h1 id="发布订阅"><a href="#发布订阅" class="headerlink" title="发布订阅"></a>发布订阅</h1><p>Redis发布订阅机制相比许多专业的消息队列系统功能较弱，不具备堆积和回溯消息的能力，但胜在足够简单.</p>
+<h1 id="客户端"><a href="#客户端" class="headerlink" title="客户端"></a>客户端</h1><p>Redis服务端和客户端的通信协议<br>Redis序列化协议(Redis Serialization Protocol) 保证了客户端与服务端的正常通信，是各种编程语言开发客户端的基础。</p>
+<p>主流编程语言的 Redis客户端使用方法</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="http://redis.io/clients">Redis客户端语言支持</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/lettuce-io/lettuce-core">JAVA语言Redis客户端Lettuce</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/gomodule/redigo">GO语言Redis客户端gomodule&#x2F;redigo</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/go-redis/redis">GO语言Redis客户端go-redis&#x2F;redis</a></li>
+<li><a target="_blank" rel="noopener" href="https://levelup.gitconnected.com/fastest-redis-client-library-for-go-7993f618f5ab">对比多种GO语言Redis客户端</a></li>
+</ul>
+<h2 id="客户端管理"><a href="#客户端管理" class="headerlink" title="客户端管理"></a>客户端管理</h2><p>Redis提供了客户端相关API对其状态进行监控和管理。</p>
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>作用</th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>client list</td>
+<td>列出与Redis服务端相连的所有客户端连接信息</td>
+<td></td>
+</tr>
+<tr>
+<td>client setName</td>
+<td>设置客户端的name<br />标识客户端来源</td>
+<td></td>
+</tr>
+<tr>
+<td>client getName</td>
+<td>获取客户端的name</td>
+<td></td>
+</tr>
+<tr>
+<td>client kill ip:port</td>
+<td>杀掉指定IP地址和端口的客户端</td>
+<td></td>
+</tr>
+<tr>
+<td>client pause timeout</td>
+<td>阻塞客户端timeout毫秒数<br/>在生产环境中，暂停客户端成本非常高。</td>
+<td></td>
+</tr>
+<tr>
+<td>monitor</td>
+<td>监听Redis正在执行的命令</td>
+<td></td>
+</tr>
+</tbody></table>
+<p>client list命令的输出格式</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">client list命令的输出格式</span></span><br><span class="line">127.0.0.1:6379&gt; client list</span><br><span class="line">id=1124 addr=127.0.0.1:53714 fd=8 name=client-test-name1 age=85 idle=8 flags=N db=0 sub=0 psub=0 multi=-1 qbuf=0 qbuf-free=0 obl=0 oll=0 omem=0 events=r cmd=client</span><br><span class="line">id=1125 addr=127.0.0.1:53716 fd=9 name=cliet-test-name2 age=32 idle=0 flags=N db=0 sub=0 psub=0 multi=-1 qbuf=26 qbuf-free=32742 obl=0 oll=0 omem=0 events=r cmd=client</span><br></pre></td></tr></table></figure>
+
+
+
+<p>client list命令的属性</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>含义</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>id</td>
+<td>客户端连接id</td>
+<td></td>
+</tr>
+<tr>
+<td>addr</td>
+<td>客户端连接的IP和端口</td>
+<td></td>
+</tr>
+<tr>
+<td>fd</td>
+<td>socket的文件描述符</td>
+<td>-1代表当前客户端是Redis内部的伪装客户端</td>
+</tr>
+<tr>
+<td>name</td>
+<td>客户端连接名</td>
+<td></td>
+</tr>
+<tr>
+<td>qbuf</td>
+<td>输入缓冲区的总容量</td>
+<td></td>
+</tr>
+<tr>
+<td>qbuf-free</td>
+<td>输入缓冲区的剩余容量</td>
+<td></td>
+</tr>
+<tr>
+<td>obl</td>
+<td>输出缓冲区中的固定缓冲区长度</td>
+<td></td>
+</tr>
+<tr>
+<td>oll</td>
+<td>输出缓冲区中的动态缓冲区列表长度</td>
+<td></td>
+</tr>
+<tr>
+<td>omem</td>
+<td>输出缓冲区中的使用的字节数</td>
+<td></td>
+</tr>
+<tr>
+<td>age</td>
+<td>客户端连接存活时间</td>
+<td></td>
+</tr>
+<tr>
+<td>idle</td>
+<td>客户端连接空闲时间</td>
+<td>当age等于idle时，说明连接一直处于空闲状态</td>
+</tr>
+<tr>
+<td>flags</td>
+<td>客户端类型标识</td>
+<td></td>
+</tr>
+<tr>
+<td>db</td>
+<td>当前客户端正在使用的数据库索引下标</td>
+<td></td>
+</tr>
+<tr>
+<td>sub&#x2F;psub</td>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>
+<p><strong>客户端标识</strong><br>客户端id是随着Redis的连接自增的，重启Redis后会重置为0<br>通常来讲，在Redis只有一个应用方使用的情况下，IP和端口作为标识会更加清晰。<br>当多个应用方共同使用一个Redis，那么此时client setName可以作为标识客户端的一个依据。</p>
+<p><strong>客户端的输入缓冲区</strong><br>Redis Server端为每个客户端分配了输入缓冲区，用于缓冲客户端发送的命令，缓冲区的命令被拉取后执行。<br>输入缓冲区问题出现概率比较低，但是也要做好防范，在开发中要减少bigkey、减少Redis阻塞、合理的监控报警。</p>
+<ul>
+<li>输入缓冲区使用不当的危害<ol>
+<li>一旦某个客户端的输入缓冲区超过1G(没有相应配置来规定)，客户端将会被关闭。</li>
+<li>输入缓冲区不受maxmemory控制，超过maxmemory限制后(包含数据存储)，可能会产生数据丢失、键值淘汰、OOM等情况</li>
+</ol>
+</li>
+<li>造成输入缓冲区过大的原因<ol>
+<li>Redis的处理速度跟不上输入缓冲区的输入速度，并且每次进入输入缓冲区的命令包含了大量 bigkey</li>
+<li>Redis发生了阻塞，短期内不能处理命令，造成客户端输入的命令积压在了输入缓冲区</li>
+</ol>
+</li>
+<li>如何快速发现和监控<ol>
+<li>通过定期执行client list命令，收集qbuf和qbuf-free找到异常的连接记录并分析，最终找到可能出问题的客户端。</li>
+<li>通过info命令的info clients模块，找到最大的输入缓冲区</li>
+<li>client list监控和info clients监控输入缓冲区的优劣势</li>
+</ol>
+</li>
+</ul>
+<p><strong>客户端的输出缓冲区</strong><br>Redis为每个客户端分配了输出缓冲区，保存命令执行结果，为Redis和客户端交互返回结果提供缓冲。<br>输出缓冲区的容量可以通过参数client-outputbuffer-limit来进行设置。<br>并且输出缓冲区做得更加细致，按照客户端的不同 分为三种：普通客户端、发布订阅客户端、slave客户端</p>
+<p><strong>monitor命令</strong><br>每个客户端都有自己的输出缓冲区，monitor能监听到所有的命令。<br>一旦Redis的并发量过大，monitor客户端的输出缓冲会暴涨，可能瞬间会占用大量内存</p>
+<p><strong>客户端的存活状态</strong><br>maxclients(s默认值是10000)参数来限制最大客户端连接数，一旦连接数超过 maxclients，新的连接将被拒绝。<br>timeout（单位为秒）参数来限制连接的最大空闲时间，一 旦客户端连接的idle时间超过了timeout，连接将会被关闭。</p>
+<p><strong>客户端的类型</strong></p>
+<h1 id="Reference"><a href="#Reference" class="headerlink" title="Reference"></a>Reference</h1><p><a target="_blank" rel="noopener" href="https://redis.io/topics/introduction">Redis Introduction</a><br><a target="_blank" rel="noopener" href="http://www.redis.cn/">Redis常用命令解释</a><br><a target="_blank" rel="noopener" href="https://cachecloud.github.io/">Cachecloud</a><br><a target="_blank" rel="noopener" href="https://github.com/sohutv/cachecloud">sohutv&#x2F;cachecloud</a><br><a target="_blank" rel="noopener" href="https://github.com/tuister/cachecloud-docker">Cachecloud docker</a><br><a target="_blank" rel="noopener" href="https://github.com/htw0056/redis-3.0-annotated-cmake-in-clion">使用CLion阅读Redis源码</a></p>
+<h1 id="Other"><a href="#Other" class="headerlink" title="Other"></a>Other</h1><p>REDIS</p>
+<p>客户端语言和框架的选择</p>
+<p>​		API特性</p>
+<p>​		API框架：提供的API   链接的管理 配置的管理  </p>
+<p>部署和运维： 机器准备&amp;&amp;基准测试 benchmark 压测  ；开启的特性；日常运维；报警条件；</p>
+<p>整体关注：api 日志 性能 监控 </p>
+<p>RDB 持久化:</p>
+<p>​	RDB持久化是把当前进程数据生成快照保存到硬盘的过程，触发RDB持 久化过程分为手动触发和自动触发。</p>
+<p>​	手动触发分别对应save和bgsave命令：</p>
+<p>​	save命令：阻塞当前Redis服务器，直到RDB过程完成为止，对于内存 比较大的实例会造成长时间阻塞，线上环境不建议使用。</p>
+<p>​	bgsave命令：Redis进程执行fork操作创建子进程，RDB持久化过程由子 进程负责，完成后自动结束。阻塞只发生在fork阶段，一般时间很短。</p>
+<p>自动触发RDB的持久化机制</p>
+<p>​		使用save相关配置，如“save m n”。表示m秒内数据集存在n次修改 时，自动触发bgsave。</p>
+<p>​		如果从节点执行全量复制操作，主节点自动执行bgsave生成RDB文件并发送给从节点</p>
+<p>​		执行debug reload命令重新加载Redis时，也会自动触发save操作。</p>
+<p>​		默认情况下执行shutdown命令时，如果没有开启AOF持久化功能则自动执行bgsave。</p>
+<p>RDB文件</p>
+<p>​	存储位置 ， 运行期动态调整位置</p>
+<p>​	压缩：</p>
+<p>​	校验：如果Redis加载损坏的RDB文件时拒绝启动</p>
+<p>RDB的优点：</p>
+<p>​	非常适用于备份，全量复制等场景</p>
+<p>RDB的缺点：</p>
+<p>​	没办法做到实时持久化&#x2F;秒级持久化  因为bgsave每次运 行都要执行fork操作创建子进程，属于重量级操作，频繁执行成本过高</p>
+<p>​	特定二进制格式保存   存在老版本Redis服务无法兼容新版RDB格式的问题</p>
+<p>​	</p>
+<p>AOF（append only file）持久化：以独立日志的方式记录每次写命令， 重启时再重新执行AOF文件中的命令达到恢复数据的目的。</p>
+<p>AOF的主要作用 是解决了数据持久化的实时性，目前已经是Redis持久化的主流方式。理解 掌握好AOF持久化机制对我们兼顾数据安全性和性能非常有帮助。</p>
+<p>开启AOF功能需要设置配置：appendonly yes，默认不开启。AOF文件名 通过appendfilename配置设置，默认文件名是appendonly.aof。保存路径同 RDB持久化方式一致，通过dir配置指定。AOF的工作流程操作：命令写入 （append）、文件同步（sync）、文件重写（rewrite）、重启加载 （load）</p>
+<p>1）所有的写入命令会追加到aof_buf（缓冲区）中。 2）AOF缓冲区根据对应的策略向硬盘做同步操作。 3）随着AOF文件越来越大，需要定期对AOF文件进行重写，达到压缩 的目的。 4）当Redis服务器重启时，可以加载AOF文件进行数据恢复。</p>
+<p>AOF重写降低了文件占用空间，除此之外，另一个目的是：更小的AOF 文件可以更快地被Redis加载。</p>
+<p>AOF重写过程可以手动触发和自动触发：</p>
+<p>​	手动触发：直接调用bgrewriteaof命令。</p>
+<p>​	自动触发：根据auto-aof-rewrite-min-size和auto-aof-rewrite-percentage参 数确定自动触发时机。</p>
+<p>​	·auto-aof-rewrite-min-size：表示运行AOF重写时文件最小体积，默认 为64MB。</p>
+<p>​	·auto-aof-rewrite-percentage：代表当前AOF文件空间 （aof_current_size）和上一次重写后AOF文件空间（aof_base_size）的比 值。</p>
+<p>自动触发时机&#x3D;aof_current_size&gt;auto-aof-rewrite-minsize&amp;&amp;（aof_current_size-aof_base_size）&#x2F;aof_base_size&gt;&#x3D;auto-aof-rewritepercentage 其中aof_current_size和aof_base_size可以在info Persistence统计信息中查 看。</p>
+<p>Redis关闭再启动后，运行ID会随之改变</p>
+<p>如何在不改变运行ID的情况下重启呢？可以使用debug reload命 令重新加载RDB并保持运行ID不变，从而有效避免不必要的全量复制。</p>
+<p>debug reload命令会阻塞当前Redis节点主线程，阻塞期间会生成本地 RDB快照并清空数据之后再加载RDB文件。因此对于大数据量的主节点和无 法容忍阻塞的应用场景，谨慎使用。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/flame/tags/redis/" rel="tag"># redis</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/flame/2021/11/10/redis/redis-config-list/" rel="prev" title="redis配置">
+      <i class="fa fa-chevron-left"></i> redis配置
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/flame/2021/11/12/c-language/cmake/" rel="next" title="c项目的编译和构建">
+      c项目的编译和构建 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%89%8D%E8%A8%80"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Redis%E7%AE%80%E8%BF%B0"><span class="nav-number">2.</span> <span class="nav-text">Redis简述</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Redis%E6%9E%B6%E6%9E%84%E6%A8%A1%E5%9E%8B"><span class="nav-number">3.</span> <span class="nav-text">Redis架构模型</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Redis%E5%9F%BA%E7%A1%80"><span class="nav-number">4.</span> <span class="nav-text">Redis基础</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%91%BD%E4%BB%A4"><span class="nav-number">4.1.</span> <span class="nav-text">字符串命令</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%93%88%E5%B8%8C%E5%91%BD%E4%BB%A4"><span class="nav-number">4.2.</span> <span class="nav-text">哈希命令</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%97%E8%A1%A8%E5%91%BD%E4%BB%A4"><span class="nav-number">4.3.</span> <span class="nav-text">列表命令</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%9B%86%E5%90%88%E5%91%BD%E4%BB%A4"><span class="nav-number">4.4.</span> <span class="nav-text">集合命令</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9C%89%E5%BA%8F%E9%9B%86%E5%90%88%E5%91%BD%E4%BB%A4"><span class="nav-number">4.5.</span> <span class="nav-text">有序集合命令</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%94%AE%E7%AE%A1%E7%90%86"><span class="nav-number">4.6.</span> <span class="nav-text">键管理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Bitmaps"><span class="nav-number">4.7.</span> <span class="nav-text">Bitmaps</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#HyperLogLog"><span class="nav-number">4.8.</span> <span class="nav-text">HyperLogLog</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#GEO"><span class="nav-number">4.9.</span> <span class="nav-text">GEO</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Redis-Shell"><span class="nav-number">5.</span> <span class="nav-text">Redis Shell</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#redis-server"><span class="nav-number">5.1.</span> <span class="nav-text">redis-server</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#redis-benchmark"><span class="nav-number">5.2.</span> <span class="nav-text">redis-benchmark</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#redis-cli"><span class="nav-number">5.3.</span> <span class="nav-text">redis-cli</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Pipeline"><span class="nav-number">6.</span> <span class="nav-text">Pipeline</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8B%E5%8A%A1%E5%92%8CLua"><span class="nav-number">7.</span> <span class="nav-text">事务和Lua</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%8F%91%E5%B8%83%E8%AE%A2%E9%98%85"><span class="nav-number">8.</span> <span class="nav-text">发布订阅</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%AE%A2%E6%88%B7%E7%AB%AF"><span class="nav-number">9.</span> <span class="nav-text">客户端</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%A2%E6%88%B7%E7%AB%AF%E7%AE%A1%E7%90%86"><span class="nav-number">9.1.</span> <span class="nav-text">客户端管理</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Reference"><span class="nav-number">10.</span> <span class="nav-text">Reference</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Other"><span class="nav-number">11.</span> <span class="nav-text">Other</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="flame"
+      src="/flame/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">flame</p>
+  <div class="site-description" itemprop="description">读书百遍 其义自见</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/flame/archives/">
+        
+          <span class="site-state-item-count">22</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/flame/categories/">
+          
+        <span class="site-state-item-count">36</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/flame/tags/">
+          
+        <span class="site-state-item-count">22</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+      
+      <!--网易云音乐插件-->
+      <!-- require APlayer -->
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.css">
+      <script src="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.js"></script>
+      <!-- require MetingJS-->
+      <script src="https://cdn.jsdelivr.net/npm/meting@2.0.1/dist/Meting.min.js"></script>
+      <!--网易云playlist外链地址-->
+      <div style="margin-top: 20px;">
+        <meting-js
+            server="netease"
+            type="playlist"
+            id="427009153"
+            mini="false"
+            fixed="false"
+            list-folded="true"
+            autoplay="false"
+            volume="0.4"
+            theme="#FADFA3"
+            order="list"
+            loop="all"
+            preload="auto"
+            mutex="true">
+        </meting-js>
+      </div>
+
+    </div>
+
+
+
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">flame</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">150k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">2:16</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/flame/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/theme-next/theme-next-pjax@0/pjax.min.js"></script>
+  <script src="/flame/lib/velocity/velocity.min.js"></script>
+  <script src="/flame/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/flame/js/utils.js"></script>
+
+<script src="/flame/js/motion.js"></script>
+
+
+<script src="/flame/js/schemes/pisces.js"></script>
+
+
+<script src="/flame/js/next-boot.js"></script>
+
+<script src="/flame/js/bookmark.js"></script>
+
+  <script>
+var pjax = new Pjax({
+  selectors: [
+    'head title',
+    '#page-configurations',
+    '.content-wrap',
+    '.post-toc-wrap',
+    '.languages',
+    '#pjax'
+  ],
+  switches: {
+    '.post-toc-wrap': Pjax.switches.innerHTML
+  },
+  analytics: false,
+  cacheBust: false,
+  scrollTo : !CONFIG.bookmark.enable
+});
+
+window.addEventListener('pjax:success', () => {
+  document.querySelectorAll('script[data-pjax], script#page-configurations, #pjax script').forEach(element => {
+    var code = element.text || element.textContent || element.innerHTML || '';
+    var parent = element.parentNode;
+    parent.removeChild(element);
+    var script = document.createElement('script');
+    if (element.id) {
+      script.id = element.id;
+    }
+    if (element.className) {
+      script.className = element.className;
+    }
+    if (element.type) {
+      script.type = element.type;
+    }
+    if (element.src) {
+      script.src = element.src;
+      // Force synchronous loading of peripheral JS.
+      script.async = false;
+    }
+    if (element.dataset.pjax !== undefined) {
+      script.dataset.pjax = '';
+    }
+    if (code !== '') {
+      script.appendChild(document.createTextNode(code));
+    }
+    parent.appendChild(script);
+  });
+  NexT.boot.refresh();
+  // Define Motion Sequence & Bootstrap Motion.
+  if (CONFIG.motion.enable) {
+    NexT.motion.integrator
+      .init()
+      .add(NexT.motion.middleWares.subMenu)
+      .add(NexT.motion.middleWares.postList)
+      .bootstrap();
+  }
+  NexT.utils.updateSidebarPosition();
+});
+</script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/flame/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+<script data-pjax>
+if (document.querySelectorAll('pre.mermaid').length) {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mermaid@8/dist/mermaid.min.js', () => {
+    mermaid.initialize({
+      theme    : 'default',
+      logLevel : 3,
+      flowchart: { curve     : 'linear' },
+      gantt    : { axisFormat: '%m/%d/%Y' },
+      sequence : { actorMargin: 50 }
+    });
+  }, window.mermaid);
+}
+</script>
+
+
+    <div id="pjax">
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID    : 'ea4dd98148ad4427dc12',
+      clientSecret: '6b19239ab40d57eb79685e3e48fd6f0e54bc3b03',
+      repo        : 'flame',
+      owner       : 'flame-bcc',
+      admin       : ['agui93'],
+      id          : 'a7c6b174ffc3038e0126f6dfe1e48220',
+        language: 'zh-CN',
+      distractionFreeMode: false
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+    </div>
+</body>
+</html>

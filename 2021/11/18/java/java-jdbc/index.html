@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/flame/images/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/flame/images/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/flame/images/favicon-16x16.png">
+  <link rel="mask-icon" href="/flame/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/flame/css/main.css">
+
+
+<link rel="stylesheet" href="/flame/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"flame-bcc.github.io","root":"/flame/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","width":260,"display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"default"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":true,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":true,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.json"};
+  </script>
+
+  <meta name="description" content="前言​	关于Mysql-JDBC的使用">
+<meta property="og:type" content="article">
+<meta property="og:title" content="mysql jdbc">
+<meta property="og:url" content="https://flame-bcc.github.io/flame/2021/11/18/java/java-jdbc/index.html">
+<meta property="og:site_name" content="flame">
+<meta property="og:description" content="前言​	关于Mysql-JDBC的使用">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2021-11-18T10:54:42.000Z">
+<meta property="article:modified_time" content="2022-07-16T09:47:47.901Z">
+<meta property="article:author" content="flame">
+<meta property="article:tag" content="java">
+<meta property="article:tag" content="jdbc">
+<meta property="article:tag" content="mysql">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://flame-bcc.github.io/flame/2021/11/18/java/java-jdbc/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>mysql jdbc | flame</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/flame/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">flame</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">路漫漫其修远兮 吾将上下而求索</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/flame/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/flame/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/flame/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/flame/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/flame/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/agui93" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://flame-bcc.github.io/flame/2021/11/18/java/java-jdbc/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/flame/images/avatar.jpeg">
+      <meta itemprop="name" content="flame">
+      <meta itemprop="description" content="读书百遍 其义自见">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="flame">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          mysql jdbc
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2021-11-18 18:54:42" itemprop="dateCreated datePublished" datetime="2021-11-18T18:54:42+08:00">2021-11-18</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-07-16 17:47:47" itemprop="dateModified" datetime="2022-07-16T17:47:47+08:00">2022-07-16</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/flame/categories/java/" itemprop="url" rel="index"><span itemprop="name">java</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/flame/categories/java/jdbc/" itemprop="url" rel="index"><span itemprop="name">jdbc</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>​	关于Mysql-JDBC的使用</p>
+<span id="more"></span>
+
+
+
+<h1 id="JDBC"><a href="#JDBC" class="headerlink" title="JDBC"></a>JDBC</h1><p>JDBC(Java Database Connectivity)是java应用统一访问数据库层的api。</p>
+<table>
+<thead>
+<tr>
+<th>JDK</th>
+<th>JDBC Version</th>
+<th>JSR Specification</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>jdk8</td>
+<td>JDBC 4.2</td>
+<td>JSR 221</td>
+</tr>
+<tr>
+<td>jdk7</td>
+<td>JDBC 4.1</td>
+<td>JSR 221</td>
+</tr>
+<tr>
+<td>jdk6</td>
+<td>JDBC 4.0</td>
+<td>JSR 221</td>
+</tr>
+</tbody></table>
+<h1 id="Mysql-JDBC"><a href="#Mysql-JDBC" class="headerlink" title="Mysql JDBC"></a>Mysql JDBC</h1><p>Mysql-JDBC是用于mysql的JDBC驱动</p>
+<h2 id="URL"><a href="#URL" class="headerlink" title="URL"></a>URL</h2><p>Mysql Connection URL 格式</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">jdbc:mysql:<span class="comment">//[host][:port]/[database][?property1][=value1]...</span></span><br><span class="line"></span><br><span class="line">  host - The host name where MySQL server is running.</span><br><span class="line">         Default is <span class="number">127.0</span><span class="number">.0</span><span class="number">.1</span> - the IP address of localhost.</span><br><span class="line"></span><br><span class="line">  port - The port number where MySQL is listening <span class="keyword">for</span> connection.</span><br><span class="line">         Default is <span class="number">3306.</span></span><br><span class="line"></span><br><span class="line">  Database - The name of an existing database on MySQL server.</span><br><span class="line">         If not specified, the connection starts no current database.</span><br><span class="line"></span><br><span class="line">  Property - The name of a supported connection properties.</span><br><span class="line">         <span class="string">&quot;user&quot;</span> and <span class="string">&quot;password&quot;</span> are <span class="number">2</span> most important properties.</span><br><span class="line">    </span><br><span class="line">  Value - The value <span class="keyword">for</span> the specified connection property.</span><br><span class="line">    </span><br></pre></td></tr></table></figure>
+
+
+
+<p>样例</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">jdbc:mysql:<span class="comment">//localhost:3306/testDb?user=root&amp;password=123456</span></span><br><span class="line">jdbc:mysql:<span class="comment">//:3306/testDb?user=root&amp;password=123456</span></span><br><span class="line">jdbc:mysql:<span class="comment">//localhost/testDb?user=root&amp;password=123456</span></span><br><span class="line">jdbc:mysql:<span class="comment">//localhost:3306/?user=root&amp;password=123456</span></span><br><span class="line">jdbc:mysql:<span class="comment">//localhost/?user=root&amp;password=123456</span></span><br><span class="line">jdbc:mysql:<span class="comment">//:3306/?user=root&amp;password=123456</span></span><br><span class="line">jdbc:mysql:<span class="comment">///HerongDB?user=root&amp;password=123456</span></span><br><span class="line">jdbc:mysql:<span class="comment">///?user=root&amp;password=123456</span></span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="加载"><a href="#加载" class="headerlink" title="加载"></a>加载</h2><ul>
+<li><p>Class.forName</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//Load the MySQL JDBC driver，前提是mysql driver jar存在</span></span><br><span class="line">Class.forName(<span class="string">&quot;com.mysql.jdbc.Driver&quot;</span>);</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>system prperties</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-Djdbc.drivers=<span class="string">&quot;com.mysql.jdbc.Driver&quot;</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>自动(驱动自定义: META-INF&#x2F;services&#x2F;jdbc.sql.Driver)</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//JDK8会自动加载类路径下存在的Mysql Jdbc Driver。</span></span><br></pre></td></tr></table></figure></li>
+</ul>
+<h2 id="连接"><a href="#连接" class="headerlink" title="连接"></a>连接</h2><p>建立connection的两种方式：</p>
+<ul>
+<li><p>by DriverManager</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Connection con = DriverManager.getConnection(String mysqlConnectionUrl);</span><br><span class="line"></span><br><span class="line">Connection con = DriverManager.getConnection(String mysqlConnectionUrl, Properties info)</span><br><span class="line"></span><br><span class="line">Connection con = DriverManager.getConnection(String mysqlConnectionUrl,  String user, String password)</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>by DataSource</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dataSource.getConnection</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h1 id="Experiments"><a href="#Experiments" class="headerlink" title="Experiments"></a>Experiments</h1><p><a target="_blank" rel="noopener" href="https://github.com/agui93/agui93-moonlight/tree/master/java-projects/middlewares/jdbc">JDBC experiments</a></p>
+<table>
+<thead>
+<tr>
+<th>类</th>
+<th>功能</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>JdbcCase1</td>
+<td>list jdbc dirvers</td>
+</tr>
+<tr>
+<td>JdbcCase2</td>
+<td>build connection by DriverManager <br/>build connection by DataSource</td>
+</tr>
+<tr>
+<td>JdbcCase3</td>
+<td>java.sql.Statement api usage</td>
+</tr>
+<tr>
+<td>JdbcCase</td>
+<td>java.sql.PreparedStatement api usage</td>
+</tr>
+<tr>
+<td>JdbcCase5</td>
+<td>java.sql.PreparedStatement Insert Performance</td>
+</tr>
+</tbody></table>
+<h1 id="Statement"><a href="#Statement" class="headerlink" title="Statement"></a>Statement</h1><p>使用Statement处理SQL.</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">Statement</span> <span class="variable">statement</span> <span class="operator">=</span> connection.createStatement();</span><br><span class="line"></span><br><span class="line">statement.executeUpdate...</span><br><span class="line"></span><br><span class="line">statement.executeQuery...</span><br></pre></td></tr></table></figure>
+
+
+
+<h1 id="PreparedStatement"><a href="#PreparedStatement" class="headerlink" title="PreparedStatement"></a>PreparedStatement</h1><p>If you have a SQL statement that needs to be executed <strong>multiple times</strong>, it is more efficient to use a JDBC PreparedStatement object to run it.</p>
+<p>JDBC PreparedStatement features:</p>
+<ul>
+<li>SQL statements PreparedStatement objects are <strong>pre-compiled</strong> on the database server side.</li>
+<li><strong>IN</strong> parameters are supported in SQL statements in PreparedStatement objects.</li>
+<li><strong>Batch execution mode</strong> is supported to run the run SQL statement multiple times in a single transaction.</li>
+</ul>
+<h2 id="基本语法"><a href="#基本语法" class="headerlink" title="基本语法"></a>基本语法</h2><p>To make a PreparedStatement object more flexible, you can add parameters to the <strong>embedded SQL statement</strong> with question marks (?). </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//by?符号</span></span><br><span class="line"><span class="type">String</span> <span class="variable">embeddedSQL</span> <span class="operator">=</span> <span class="string">&quot;SELECT * FROM Profile WHERE ID = ?&quot;</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">//get prepareStatement</span></span><br><span class="line"><span class="type">PreparedStatement</span> <span class="variable">ps</span> <span class="operator">=</span> connection.prepareStatement(embeddedSQL);</span><br><span class="line"></span><br><span class="line"><span class="comment">// Sets value to the n-th parameter.</span></span><br><span class="line">ps.setXXX(<span class="number">1</span>, value);</span><br><span class="line">ps.setXXX(<span class="number">2</span>, value);</span><br><span class="line">...</span><br><span class="line">ps.setXXX(n, value);</span><br><span class="line"></span><br><span class="line"><span class="comment">//execute</span></span><br><span class="line">ps.execute...</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="批量处理"><a href="#批量处理" class="headerlink" title="批量处理"></a>批量处理</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">ps.setXXX(...);  <span class="comment">// Set parameters for the first copy</span></span><br><span class="line">...</span><br><span class="line">ps.addBatch();   <span class="comment">// Create the first copy of the SQL statement</span></span><br><span class="line">ps.setXXX(...);  <span class="comment">// Set parameters for the second copy</span></span><br><span class="line">...</span><br><span class="line">ps.addBatch();   <span class="comment">// Create the second copy of the SQL statement</span></span><br><span class="line">ps.setXXX(...);  <span class="comment">// Set parameters for the third copy</span></span><br><span class="line">...</span><br><span class="line">ps.addBatch();   <span class="comment">// Create the third copy of the SQL statement</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">ps.executeBatch(); <span class="comment">// Execute all copies together as a batch</span></span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="性能对比"><a href="#性能对比" class="headerlink" title="性能对比"></a>性能对比</h2><p>结论: If you have a SQL statement that needs to be executed <strong>multiple times</strong>, it is more efficient to use a JDBC PreparedStatement object to run it.</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/agui93/agui93-moonlight/tree/master/java-projects/middlewares/jdbc">实验代码JdbcCase5</a></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">  <span class="number">551</span> ms used when insert   <span class="number">100</span> records by ResultSet.</span><br><span class="line">  <span class="number">202</span> ms used when insert   <span class="number">100</span> records by Statement.</span><br><span class="line">  <span class="number">188</span> ms used when insert   <span class="number">100</span> records by PreparedStatement.</span><br><span class="line">  <span class="number">183</span> ms used when insert   <span class="number">100</span> records by PreparedStatement-BatchInsert.</span><br><span class="line">=====================</span><br><span class="line">  <span class="number">610</span> ms used when insert   <span class="number">200</span> records by ResultSet.</span><br><span class="line">  <span class="number">416</span> ms used when insert   <span class="number">200</span> records by Statement.</span><br><span class="line">  <span class="number">337</span> ms used when insert   <span class="number">200</span> records by PreparedStatement.</span><br><span class="line">  <span class="number">386</span> ms used when insert   <span class="number">200</span> records by PreparedStatement-BatchInsert.</span><br><span class="line">=====================</span><br><span class="line"> <span class="number">2309</span> ms used when insert   <span class="number">500</span> records by ResultSet.</span><br><span class="line">  <span class="number">970</span> ms used when insert   <span class="number">500</span> records by Statement.</span><br><span class="line">  <span class="number">920</span> ms used when insert   <span class="number">500</span> records by PreparedStatement.</span><br><span class="line">  <span class="number">820</span> ms used when insert   <span class="number">500</span> records by PreparedStatement-BatchInsert.</span><br><span class="line">=====================</span><br><span class="line"> <span class="number">3502</span> ms used when insert  <span class="number">1000</span> records by ResultSet.</span><br><span class="line"> <span class="number">2000</span> ms used when insert  <span class="number">1000</span> records by Statement.</span><br><span class="line"> <span class="number">2019</span> ms used when insert  <span class="number">1000</span> records by PreparedStatement.</span><br><span class="line"> <span class="number">2020</span> ms used when insert  <span class="number">1000</span> records by PreparedStatement-BatchInsert.</span><br><span class="line">=====================</span><br><span class="line"> <span class="number">7362</span> ms used when insert  <span class="number">2000</span> records by ResultSet.</span><br><span class="line"> <span class="number">4972</span> ms used when insert  <span class="number">2000</span> records by Statement.</span><br><span class="line"> <span class="number">4218</span> ms used when insert  <span class="number">2000</span> records by PreparedStatement.</span><br><span class="line"> <span class="number">6301</span> ms used when insert  <span class="number">2000</span> records by PreparedStatement-BatchInsert.</span><br><span class="line">=====================</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h1 id="CallableStatement"><a href="#CallableStatement" class="headerlink" title="CallableStatement"></a>CallableStatement</h1><p>CallableStatement : 支持调用存储过程,提供了对输出和输入&#x2F;输出参数(INOUT)的支持;</p>
+<ul>
+<li>A JDBC CallableStatement object allows you to call stored procedures in the database server.</li>
+<li>IN and OUT parameters can be passed to stored procedures from JDBC CallableStatement objects.</li>
+</ul>
+<h1 id="Reference"><a href="#Reference" class="headerlink" title="Reference"></a>Reference</h1><p><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/technotes/guides/jdbc/">Java Jdbc Guides</a></p>
+<p><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/tutorial/jdbc/basics/index.html">JDBC Basics Tutorial</a></p>
+<p><a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/8/docs/api/java/sql/package-summary.html">Java Sql Package Summary</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.herongyang.com/JDBC/">JDBC Tutorials Examples</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/noteless/category/1382609.html">JDBC介绍</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/flame/tags/java/" rel="tag"># java</a>
+              <a href="/flame/tags/jdbc/" rel="tag"># jdbc</a>
+              <a href="/flame/tags/mysql/" rel="tag"># mysql</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/flame/2021/11/16/c-language/c-vim-docker-env/" rel="prev" title="c开发环境-基于vim和docker配置">
+      <i class="fa fa-chevron-left"></i> c开发环境-基于vim和docker配置
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/flame/2021/11/21/algorithms/algorithms/" rel="next" title="算法和数据结构">
+      算法和数据结构 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%89%8D%E8%A8%80"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#JDBC"><span class="nav-number">2.</span> <span class="nav-text">JDBC</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Mysql-JDBC"><span class="nav-number">3.</span> <span class="nav-text">Mysql JDBC</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#URL"><span class="nav-number">3.1.</span> <span class="nav-text">URL</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8A%A0%E8%BD%BD"><span class="nav-number">3.2.</span> <span class="nav-text">加载</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%9E%E6%8E%A5"><span class="nav-number">3.3.</span> <span class="nav-text">连接</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Experiments"><span class="nav-number">4.</span> <span class="nav-text">Experiments</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Statement"><span class="nav-number">5.</span> <span class="nav-text">Statement</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#PreparedStatement"><span class="nav-number">6.</span> <span class="nav-text">PreparedStatement</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9F%BA%E6%9C%AC%E8%AF%AD%E6%B3%95"><span class="nav-number">6.1.</span> <span class="nav-text">基本语法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%89%B9%E9%87%8F%E5%A4%84%E7%90%86"><span class="nav-number">6.2.</span> <span class="nav-text">批量处理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%A7%E8%83%BD%E5%AF%B9%E6%AF%94"><span class="nav-number">6.3.</span> <span class="nav-text">性能对比</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#CallableStatement"><span class="nav-number">7.</span> <span class="nav-text">CallableStatement</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Reference"><span class="nav-number">8.</span> <span class="nav-text">Reference</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="flame"
+      src="/flame/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">flame</p>
+  <div class="site-description" itemprop="description">读书百遍 其义自见</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/flame/archives/">
+        
+          <span class="site-state-item-count">22</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/flame/categories/">
+          
+        <span class="site-state-item-count">36</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/flame/tags/">
+          
+        <span class="site-state-item-count">22</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+      
+      <!--网易云音乐插件-->
+      <!-- require APlayer -->
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.css">
+      <script src="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.js"></script>
+      <!-- require MetingJS-->
+      <script src="https://cdn.jsdelivr.net/npm/meting@2.0.1/dist/Meting.min.js"></script>
+      <!--网易云playlist外链地址-->
+      <div style="margin-top: 20px;">
+        <meting-js
+            server="netease"
+            type="playlist"
+            id="427009153"
+            mini="false"
+            fixed="false"
+            list-folded="true"
+            autoplay="false"
+            volume="0.4"
+            theme="#FADFA3"
+            order="list"
+            loop="all"
+            preload="auto"
+            mutex="true">
+        </meting-js>
+      </div>
+
+    </div>
+
+
+
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">flame</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">150k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">2:16</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/flame/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/theme-next/theme-next-pjax@0/pjax.min.js"></script>
+  <script src="/flame/lib/velocity/velocity.min.js"></script>
+  <script src="/flame/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/flame/js/utils.js"></script>
+
+<script src="/flame/js/motion.js"></script>
+
+
+<script src="/flame/js/schemes/pisces.js"></script>
+
+
+<script src="/flame/js/next-boot.js"></script>
+
+<script src="/flame/js/bookmark.js"></script>
+
+  <script>
+var pjax = new Pjax({
+  selectors: [
+    'head title',
+    '#page-configurations',
+    '.content-wrap',
+    '.post-toc-wrap',
+    '.languages',
+    '#pjax'
+  ],
+  switches: {
+    '.post-toc-wrap': Pjax.switches.innerHTML
+  },
+  analytics: false,
+  cacheBust: false,
+  scrollTo : !CONFIG.bookmark.enable
+});
+
+window.addEventListener('pjax:success', () => {
+  document.querySelectorAll('script[data-pjax], script#page-configurations, #pjax script').forEach(element => {
+    var code = element.text || element.textContent || element.innerHTML || '';
+    var parent = element.parentNode;
+    parent.removeChild(element);
+    var script = document.createElement('script');
+    if (element.id) {
+      script.id = element.id;
+    }
+    if (element.className) {
+      script.className = element.className;
+    }
+    if (element.type) {
+      script.type = element.type;
+    }
+    if (element.src) {
+      script.src = element.src;
+      // Force synchronous loading of peripheral JS.
+      script.async = false;
+    }
+    if (element.dataset.pjax !== undefined) {
+      script.dataset.pjax = '';
+    }
+    if (code !== '') {
+      script.appendChild(document.createTextNode(code));
+    }
+    parent.appendChild(script);
+  });
+  NexT.boot.refresh();
+  // Define Motion Sequence & Bootstrap Motion.
+  if (CONFIG.motion.enable) {
+    NexT.motion.integrator
+      .init()
+      .add(NexT.motion.middleWares.subMenu)
+      .add(NexT.motion.middleWares.postList)
+      .bootstrap();
+  }
+  NexT.utils.updateSidebarPosition();
+});
+</script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/flame/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+<script data-pjax>
+if (document.querySelectorAll('pre.mermaid').length) {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mermaid@8/dist/mermaid.min.js', () => {
+    mermaid.initialize({
+      theme    : 'default',
+      logLevel : 3,
+      flowchart: { curve     : 'linear' },
+      gantt    : { axisFormat: '%m/%d/%Y' },
+      sequence : { actorMargin: 50 }
+    });
+  }, window.mermaid);
+}
+</script>
+
+
+    <div id="pjax">
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID    : 'ea4dd98148ad4427dc12',
+      clientSecret: '6b19239ab40d57eb79685e3e48fd6f0e54bc3b03',
+      repo        : 'flame',
+      owner       : 'flame-bcc',
+      admin       : ['agui93'],
+      id          : '81ef33d131d85c2d7bba146aca21287a',
+        language: 'zh-CN',
+      distractionFreeMode: false
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+    </div>
+</body>
+</html>

@@ -1,0 +1,1726 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/flame/images/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/flame/images/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/flame/images/favicon-16x16.png">
+  <link rel="mask-icon" href="/flame/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/flame/css/main.css">
+
+
+<link rel="stylesheet" href="/flame/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"flame-bcc.github.io","root":"/flame/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","width":260,"display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"default"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":true,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":true,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.json"};
+  </script>
+
+  <meta name="description" content="前言c项目的编译和构建  编译过程 静态函数库、共享函数库、动态加载函数库 gcc cmake make gdb">
+<meta property="og:type" content="article">
+<meta property="og:title" content="c项目的编译和构建">
+<meta property="og:url" content="https://flame-bcc.github.io/flame/2021/11/12/c-language/cmake/index.html">
+<meta property="og:site_name" content="flame">
+<meta property="og:description" content="前言c项目的编译和构建  编译过程 静态函数库、共享函数库、动态加载函数库 gcc cmake make gdb">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://flame-bcc.github.io/flame/images/c-language/gcc-compile-process.png">
+<meta property="og:image" content="https://flame-bcc.github.io/flame/images/c-language/c-build-process.png">
+<meta property="og:image" content="https://flame-bcc.github.io/flame/images/c-language/c-build-default-files.png">
+<meta property="og:image" content="https://flame-bcc.github.io/flame/images/c-language/ldconfig-opotions.png">
+<meta property="og:image" content="https://flame-bcc.github.io/flame/images/c-language/gcc-compile-process.png">
+<meta property="og:image" content="https://flame-bcc.github.io/flame/images/c-language/gdb-commands-help.png">
+<meta property="article:published_time" content="2021-11-12T07:08:50.000Z">
+<meta property="article:modified_time" content="2022-07-16T09:47:47.897Z">
+<meta property="article:author" content="flame">
+<meta property="article:tag" content="c">
+<meta property="article:tag" content="tools">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://flame-bcc.github.io/flame/images/c-language/gcc-compile-process.png">
+
+<link rel="canonical" href="https://flame-bcc.github.io/flame/2021/11/12/c-language/cmake/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>c项目的编译和构建 | flame</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/flame/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">flame</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">路漫漫其修远兮 吾将上下而求索</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/flame/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/flame/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/flame/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/flame/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/flame/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/agui93" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://flame-bcc.github.io/flame/2021/11/12/c-language/cmake/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/flame/images/avatar.jpeg">
+      <meta itemprop="name" content="flame">
+      <meta itemprop="description" content="读书百遍 其义自见">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="flame">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          c项目的编译和构建
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2021-11-12 15:08:50" itemprop="dateCreated datePublished" datetime="2021-11-12T15:08:50+08:00">2021-11-12</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-07-16 17:47:47" itemprop="dateModified" datetime="2022-07-16T17:47:47+08:00">2022-07-16</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/flame/categories/c/" itemprop="url" rel="index"><span itemprop="name">c</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/flame/categories/tools/" itemprop="url" rel="index"><span itemprop="name">tools</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/flame/categories/tools/cmake/" itemprop="url" rel="index"><span itemprop="name">cmake</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/flame/categories/tools/make/" itemprop="url" rel="index"><span itemprop="name">make</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/flame/categories/tools/gcc/" itemprop="url" rel="index"><span itemprop="name">gcc</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/flame/categories/c/cmake/" itemprop="url" rel="index"><span itemprop="name">cmake</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/flame/categories/c/make/" itemprop="url" rel="index"><span itemprop="name">make</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/flame/categories/c/lib/" itemprop="url" rel="index"><span itemprop="name">lib</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>c项目的编译和构建</p>
+<ul>
+<li>编译过程</li>
+<li>静态函数库、共享函数库、动态加载函数库</li>
+<li>gcc</li>
+<li>cmake</li>
+<li>make</li>
+<li>gdb</li>
+</ul>
+<span id="more"></span>
+
+
+
+<h1 id="编译过程"><a href="#编译过程" class="headerlink" title="编译过程"></a>编译过程</h1><p>一个源代码程序经历预处理、编译、汇编以及链接这4个过程，最终生成对应的可执行程序。</p>
+<p><img src="/flame/images/c-language/gcc-compile-process.png" alt="gcc对程序的编译过程"></p>
+<h2 id="文件名称"><a href="#文件名称" class="headerlink" title="文件名称"></a>文件名称</h2><p>常见名称的含义</p>
+<ul>
+<li><p>源文件(Source file)：通常指存放可编辑代码的文件，例如存放C C++和汇编语言的文件。</p>
+</li>
+<li><p>目标文件(Object file) ：指经过编译器的编译生成的CPU可识别的二进制代码，一般不能执行。</p>
+</li>
+<li><p>可执行文件(Excutable file)：目标文件和相关的库链接后的文件，可执行</p>
+</li>
+</ul>
+<h2 id="具体过程"><a href="#具体过程" class="headerlink" title="具体过程"></a>具体过程</h2><p><img src="/flame/images/c-language/c-build-process.png" alt="程序编译过程"></p>
+<ul>
+<li><p>预处理 : preprocessor</p>
+</li>
+<li><p>编译 : compiler  优化 : optimizer</p>
+</li>
+<li><p>汇编：assembler   </p>
+</li>
+<li><p>链接 : linker</p>
+</li>
+</ul>
+<h1 id="函数库"><a href="#函数库" class="headerlink" title="函数库"></a>函数库</h1><p><strong>库</strong>从本质上来说是一种可执行代码的二进制格式，可以被载入内存中执行。</p>
+<ul>
+<li><p>静态函数库（static libraries）：在程序执行前就加入到目标程序中去了</p>
+</li>
+<li><p>共享函数库（shared libraries）：在程序启动的时候加载到程序中，它可以被不同的程序共享，可以同时被多个线程同时使用</p>
+</li>
+<li><p>动态加载函数库（dynamically loaded libraries）：可以在程序运行的任何时候动态的加载</p>
+</li>
+</ul>
+<h2 id="静态链接库"><a href="#静态链接库" class="headerlink" title="静态链接库"></a>静态链接库</h2><p>静态链接库名字一般是libxxx.a，是obj文件的集合，整个函数库都会被整合进目标程序中。</p>
+<p>编译后的执行程序不需要外部的函数库支持，如果静态库改变了，必须重新编译。</p>
+<ul>
+<li><p>静态链接库节省了编译时间，现在一般的程序的重新编译也花费不了多少时间，这个优势不再明显。</p>
+</li>
+<li><p>静态链接库提供给别人使用时，可以对函数的源代码保密，在某些时候对开发者来说还是很有用的。</p>
+</li>
+<li><p>理论上说，使用ELF格式的静态库生成的代码可以比使用共享函数库（或者动态函数库）的程序运行速度上快一些，大概1－5％。</p>
+</li>
+</ul>
+<h2 id="共享函数库"><a href="#共享函数库" class="headerlink" title="共享函数库"></a>共享函数库</h2><p>共享函数库中的函数是在当一个可执行程序在启动的时候被加载，库中的函数和变量的地址是相对地址，真实地址在调用动态链接库加载时形成。</p>
+<p>如果一个共享函数库正常安装，所有的程序在重新运行的时候都可以自动加载最新的函数库中的函数。</p>
+<ul>
+<li>升级了函数库但是仍然允许程序使用老版本的函数库。</li>
+<li>当执行某个特定程序的时候可以覆盖某个特定的库或者库中指定的函数。</li>
+<li>可以在库函数被使用的过程中修改这些函数库。</li>
+</ul>
+<h3 id="命名"><a href="#命名" class="headerlink" title="命名"></a>命名</h3><p>每个共享函数库都有个特殊的名字，别名：<strong>soname</strong></p>
+<p>每个共享函数库都有一个真正的名字，真名：<strong>real name</strong></p>
+<p>编译器编译的时候需要的函数库名字，链接名：<strong>linker name</strong></p>
+<br/>
+
+<p><strong>soname</strong></p>
+<p>soname:  “lib” + “函数库的名称” + “.so” + 版本号</p>
+<p>例如：libtest.so.3的soname就是libtest.so.3。</p>
+<p>特例，就是非常底层的C库函数都不是以lib开头这样命名的。</p>
+<br/>
+
+<p><strong>real name</strong></p>
+<p>real name有一个主版本号，和一个发行版本号(可选)。</p>
+<p>real name是包含真正库函数代码的文件，主版本号和发行版本号使你可以知道你到底是安装了什么版本的库函数。</p>
+<p>例如：libtest.so.3.0的real name就是libtest.so.3.0，这里有发行版本号。</p>
+<br/>
+
+<p><strong>linker name</strong></p>
+<p>linker name是编译器编译的时候需要的函数库的名字。</p>
+<h3 id="文件位置"><a href="#文件位置" class="headerlink" title="文件位置"></a>文件位置</h3><p>共享函数库文件必须放在一些特定的目录里，这样通过系统的环境变量设置，应用程序才能正确的使用这些函数库。</p>
+<br/>
+
+<p><strong>GNU标准建议</strong></p>
+<p>所有的函数库文件都放在&#x2F;usr&#x2F;local&#x2F;lib目录下，建议可执行程序都放在&#x2F;usr&#x2F;local&#x2F;bin目录下。 </p>
+<p>大部分的源码开发的程序都遵循GNU的一些标准，查看info帮助：info:standards#Directory_Variables，这是一些习惯问题，可以改变。</p>
+<br/>
+
+<p><strong>FHS(Filesystem Hierarchy Standard)建议</strong></p>
+<p>在一个<strong>发行包</strong>中大部分的函数库文件应该安装到&#x2F;usr&#x2F;lib目录下，</p>
+<p>在系统启动的时候要加载的库放到&#x2F;lib目录下，</p>
+<p>不是系统本身一部分的库则放到&#x2F;usr&#x2F;local&#x2F;lib目录下。</p>
+<br/>
+
+<p>GNU提出的标准主要对于开发者开发源码的，而FHS的建议则是针对发行版本的路径的。具体的位置信息可以看&#x2F;etc&#x2F;ld.so.conf里面的配置信息。</p>
+<p>头文件路径和库文件路径是编译器默认查找的地方，例如</p>
+<p><img src="/flame/images/c-language/c-build-default-files.png" alt="默认查找路径"></p>
+<h3 id="如何使用"><a href="#如何使用" class="headerlink" title="如何使用"></a>如何使用</h3><p>在基于GNU glibc的系统里，包括所有的linux系统，启动一个ELF格式的二进制可执行文件会自动启动和运行一个program loader。对于Linux系统，这个loader的名字是&#x2F;lib&#x2F;ld-linux.so.X（X是版本号）。这个loader启动后，反过来就会load所有的其他本程序要使用的共享函数库。</p>
+<p><strong>到底在哪些目录里查找共享函数库呢？</strong></p>
+<p>定义缺省的是放在&#x2F;etc&#x2F;ld.so.conf文件里面，可以修改这个文件，加入自己的一些特殊的路径要求。</p>
+<p>大多数RedHat系列的发行包的&#x2F;etc&#x2F;ld.so.conf文件里面<strong>不包括</strong>&#x2F;usr&#x2F;local&#x2F;lib这个目录。</p>
+<p>如果想用自己的函数替换某个库中的一些函数，同时保留该库中其他的函数的话，可以在 &#x2F;etc&#x2F;ld.so.preload中加入你想要替换的库（.o结尾的文件），这些preloading的库函数将有优先加载的权利。</p>
+<p><strong>高速缓冲</strong></p>
+<p>当程序启动的时候搜索所有的目录显然会效率很低，为了提高访问函数库的速度，使用了高速缓冲。</p>
+<p><strong>ldconfig</strong>缺省情况下读出&#x2F;etc&#x2F;ld.so.conf相关信息，然后设置适当地符号链接，然后写一个cache到&#x2F;etc&#x2F;ld.so.cache这个文件中，而这个&#x2F;etc&#x2F;ld.so.cache则可以被其他程序有效的使用了。</p>
+<p>重新运行ldconfig来更新cache，通常的一些包管理器在安装一个新的函数库的时候就要运行ldconfig。 </p>
+<ul>
+<li><p>要新增一个动态加载的函数库</p>
+</li>
+<li><p>要删除某个函数库</p>
+</li>
+<li><p>要修改某个函数库的路径</p>
+</li>
+</ul>
+<p><strong>环境变量</strong></p>
+<p>Linux系统中，环境变量<strong>LD_LIBRARY_PATH</strong>可以用来指定函数库查找路径的，这个路径通常是在查找标准的路径之前查找。</p>
+<p>环境变量<strong>LD_PRELOAD</strong>列出了所有共享函数库中需要优先加载的库文件，功能和&#x2F;etc&#x2F;ld.so.preload类似。</p>
+<p>LD_LIBRARY_PATH在开发和调试过程中经常大量使用，但是不应该被一个普通用户在安装过程中被安装程序修改。</p>
+<p>事实上还有更多的环境变量影响着程序的调入过程，它们的名字通常就是以LD_或者RTLD_打头。</p>
+<h3 id="创建"><a href="#创建" class="headerlink" title="创建"></a>创建</h3><blockquote>
+<p>标准格式: gcc -shared -Wl,-soname,your_soname -o library_name file_list library_list</p>
+</blockquote>
+<p>样例，其中使用-fPIC来产生代码，而不是-fpic，PIC的意思是“位置无关代码”（Position Independent Code）</p>
+<blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">#创建object文件a.o</span><br><span class="line">#创建object文件b.o</span><br><span class="line">#创建一个包含a.o和b.o的共享函数库</span><br><span class="line">gcc –fPIC -g -c -Wall a.c  </span><br><span class="line">gcc –fPIC -g -c -Wall b.c</span><br><span class="line">gcc  -shared  -Wl,-soname,liblusterstuff.so.1 -o  liblusterstuff.so.1.0.1  a.o b.o -lc </span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h3><ul>
+<li><p>拷贝库文件到指定的标准的目录，然后运行ldconfig</p>
+</li>
+<li><p>修改环境变量</p>
+</li>
+</ul>
+<h3 id="兼容"><a href="#兼容" class="headerlink" title="兼容"></a>兼容</h3><p>尽量用二进制接口ABI（Application Binary Interface）向上兼容</p>
+<h2 id="动态加载函数库"><a href="#动态加载函数库" class="headerlink" title="动态加载函数库"></a>动态加载函数库</h2><p>动态加载函数库可以在程序运行过程中的任何时间加载。</p>
+<p>特别适合在函数中加载一些模块和plugin扩展模块的场合，因为它可以在当程序需要某个plugin模块时才动态的加载。</p>
+<p>Linux系统下，动态加载函数库与其他函数库在格式上没有特殊的区别，创建的时候是标准的object格式。主要的区别就是这些函数库不是在程序链接的时候或者启动的时候加载，而是通过一个API来打开一个函数库，寻找符号表，处理错误和关闭函数库。</p>
+<p><strong>API</strong></p>
+<ul>
+<li><p>dlopen</p>
+</li>
+<li><p>dlerror</p>
+</li>
+<li><p>dlsym</p>
+</li>
+<li><p>dlclose</p>
+</li>
+</ul>
+<h2 id="ldconfig命令"><a href="#ldconfig命令" class="headerlink" title="ldconfig命令"></a>ldconfig命令</h2><p>ldconfig是动态链接库的管理命令。</p>
+<p><img src="/flame/images/c-language/ldconfig-opotions.png" alt="ldconfig-options"></p>
+<table>
+<thead>
+<tr>
+<th>选项</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>-v, –verbose</td>
+<td>打印ldconfig当前版本号，显示所扫描的每一个目录和动态链接库</td>
+</tr>
+<tr>
+<td>-n</td>
+<td></td>
+</tr>
+<tr>
+<td>-N</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>
+<h1 id="GCC"><a href="#GCC" class="headerlink" title="GCC"></a>GCC</h1><p>GCC是GNU Compiler Collection缩写，即GNU编译器套件。</p>
+<p>一个源代码程序经历预处理、编译、汇编以及链接这4个过程，最终生成对应的可执行程序。</p>
+<p><img src="/flame/images/c-language/gcc-compile-process.png" alt="gcc对程序的编译过程"></p>
+<h2 id="编译器"><a href="#编译器" class="headerlink" title="编译器"></a>编译器</h2><table>
+<thead>
+<tr>
+<th>编译器命令</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>cc</td>
+<td>指的是C语言编译器</td>
+</tr>
+<tr>
+<td>cpp</td>
+<td>指的是预处理编译器</td>
+</tr>
+<tr>
+<td>gcc</td>
+<td>指的是C语言的编译器</td>
+</tr>
+<tr>
+<td>g++</td>
+<td>指的是C++语言的编译器</td>
+</tr>
+</tbody></table>
+<ul>
+<li><p>通常执行gcc指令编译C程序，通过g++指令编译C++程序</p>
+</li>
+<li><p>只要是GCC支持编译的程序代码，gcc指令根据后缀名自行判断所用的语言，完成编译。</p>
+</li>
+<li><p>gcc指令使用-x选项为用户提供了<strong>手动指定代表编译方式</strong>的方式</p>
+<p>例如：gcc -xc xxx表示以编译C语言代码的方式编译xxx文件；而gcc -xc++ xxx 则表示以编译C++代码的方式编译xxx文件。</p>
+</li>
+</ul>
+<h2 id="文件扩展名"><a href="#文件扩展名" class="headerlink" title="文件扩展名"></a>文件扩展名</h2><table>
+<thead>
+<tr>
+<th>扩展名</th>
+<th>GCC 编译器识别的文件类型</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>*.c</td>
+<td>尚未经过预处理操作的 C 源程序文件。</td>
+</tr>
+<tr>
+<td>*.i</td>
+<td>经过预处理操作、但尚未进行编译、汇编和连接的C源代码文件。</td>
+</tr>
+<tr>
+<td>*.cpp *.cp *.cc *.cxx *.CPP *.c++ *.C</td>
+<td>尚未经过预处理操作的C++源代码文件。</td>
+</tr>
+<tr>
+<td>*.ii</td>
+<td>已经预处理操作，但尚未进行编译、汇编和连接的 C++ 源代码文件。</td>
+</tr>
+<tr>
+<td>*.s</td>
+<td>经过编译生成的汇编代码文件。</td>
+</tr>
+<tr>
+<td>*.h</td>
+<td>C、C++ 或者 Objective-C++ 语言头文件。</td>
+</tr>
+<tr>
+<td>*.hh *.H *.hp *.hxx *.hpp *.HPP *.h++ *.tcc</td>
+<td>C++ 头文件。</td>
+</tr>
+<tr>
+<td>*.o</td>
+<td>汇编后的目标文件</td>
+</tr>
+<tr>
+<td>a.out</td>
+<td>为链接后的输出文件</td>
+</tr>
+</tbody></table>
+<h2 id="常用的编译选项"><a href="#常用的编译选项" class="headerlink" title="常用的编译选项"></a>常用的编译选项</h2><p>更多选项参考<a target="_blank" rel="noopener" href="https://gcc.gnu.org/onlinedocs/gcc-10.1.0/gcc/Invoking-GCC.html#Invoking-GCC">GCC手册</a></p>
+<table>
+<thead>
+<tr>
+<th>gcc&#x2F;g++指令</th>
+<th>功 能</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>-E（大写）</td>
+<td>预处理指定的源文件，不进行编译。</td>
+</tr>
+<tr>
+<td>-S（大写）</td>
+<td>编译指定的源文件，但是不进行汇编。</td>
+</tr>
+<tr>
+<td>-c</td>
+<td>编译、汇编指定的源文件，但是不进行链接。</td>
+</tr>
+<tr>
+<td>-o</td>
+<td>指定生成文件的文件名。</td>
+</tr>
+<tr>
+<td>-ansi</td>
+<td>对于 C 语言程序来说，其等价于 -std&#x3D;c90；对于 C++ 程序来说，其等价于 -std&#x3D;c++98。</td>
+</tr>
+<tr>
+<td>-std&#x3D;</td>
+<td>手动指令编程语言所遵循的标准，例如 c89、c90、c++98、c++11 等。</td>
+</tr>
+<tr>
+<td>-fPIC</td>
+<td>表示编译为位置独立的代码，用于编译共享库。</td>
+</tr>
+<tr>
+<td>-llibrary（-I library）</td>
+<td>其中 library 表示要搜索的库文件的名称。该选项用于手动指定链接环节中程序可以调用的库文件。建议 -l 和库文件名之间不使用空格，比如 -lstdc++。</td>
+</tr>
+<tr>
+<td>-l library</td>
+<td>指定链接时需要的动态库。编译器查找动态连接库时有隐含的命名规则，即在给出的名字前面加上lib，后面加上.a&#x2F;.so来确定库的名称。</td>
+</tr>
+<tr>
+<td>-L</td>
+<td>表示要连接的库所在的目录。</td>
+</tr>
+<tr>
+<td>-Wall</td>
+<td>生成所有警告信息。</td>
+</tr>
+<tr>
+<td>-Wl,options</td>
+<td>把参数(options)传递给链接器ld。如果options中间有逗号,就将options分成多个选项，然后传递给链接程序。</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>
+<h2 id="编译标准"><a href="#编译标准" class="headerlink" title="编译标准"></a>编译标准</h2><p>不同版本的 GCC 编译器，默认使用的标准版本也不尽相同。</p>
+<p>对于编译C、C++程序来说，借助-std选项即可手动控制GCC编译程序时所使用的编译标准。</p>
+<blockquote>
+<p>基本格式</p>
+<p>gcc&#x2F;g++ -std&#x3D;编译标准</p>
+</blockquote>
+<h3 id="C语言标准"><a href="#C语言标准" class="headerlink" title="C语言标准"></a>C语言标准</h3><p>C语言标准：C89(有时称为C90)、C94(C89的修订版)、C99、C11、C17。</p>
+<p>GCC编译器本身还对C语言进行了扩展，先后产生了GNU90、GNU99、GNU11以及GNU17。</p>
+<table>
+<thead>
+<tr>
+<th align="left">GCC版本</th>
+<th>c89&#x2F;C90</th>
+<th><strong>C99</strong></th>
+<th><strong>C11</strong></th>
+<th align="left"><strong>C17</strong></th>
+<th><strong>GNU90</strong></th>
+<th><strong>GNU99</strong></th>
+<th align="left"><strong>GNU11</strong></th>
+<th><strong>GNU17</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">8.4~10.1</td>
+<td>c89&#x2F;C90</td>
+<td>c99</td>
+<td>c11</td>
+<td align="left">c17&#x2F;c18</td>
+<td>gnu90&#x2F;gnu89</td>
+<td>gnu99</td>
+<td align="left">gnu11</td>
+<td>gnu17&#x2F;gnu18</td>
+</tr>
+<tr>
+<td align="left">5.5~7.5</td>
+<td>c89&#x2F;c90</td>
+<td>c99</td>
+<td>c11</td>
+<td align="left"></td>
+<td>gnu90&#x2F;gnu89</td>
+<td>gnu99</td>
+<td align="left">gnu11</td>
+<td></td>
+</tr>
+<tr>
+<td align="left">4.8.4~4.9.4</td>
+<td>c89&#x2F;c90</td>
+<td>c99</td>
+<td>c11</td>
+<td align="left"></td>
+<td>gnu90&#x2F;gnu89</td>
+<td>gnu99</td>
+<td align="left">gnu11</td>
+<td></td>
+</tr>
+<tr>
+<td align="left">4.7.4</td>
+<td>c89&#x2F;c90</td>
+<td>c99(部分)</td>
+<td>c11(部分)</td>
+<td align="left"></td>
+<td>gnu90&#x2F;gnu89</td>
+<td>gnu99(部分)</td>
+<td align="left">gnu11(部分)</td>
+<td></td>
+</tr>
+<tr>
+<td align="left">4.6.4</td>
+<td>c89&#x2F;c90</td>
+<td>c99(部分)</td>
+<td>c1x(部分)</td>
+<td align="left"></td>
+<td>gnu90&#x2F;gnu89</td>
+<td>gnu99(部分)</td>
+<td align="left">gnu1x(部分)</td>
+<td></td>
+</tr>
+<tr>
+<td align="left">4.5.4</td>
+<td>c89&#x2F;c90</td>
+<td>c99(部分)</td>
+<td></td>
+<td align="left"></td>
+<td>gnu90&#x2F;gnu89</td>
+<td>gnu99(部分)</td>
+<td align="left"></td>
+<td></td>
+</tr>
+</tbody></table>
+<h3 id="C-标准"><a href="#C-标准" class="headerlink" title="C++标准"></a>C++标准</h3><p>C++标准：C++98、C++03(C++98的修订版)、C++11(有时又称为C++0x)、C++14、C++17。</p>
+<p>GCC编译器本身对的C++标准做了相应的扩展，比如GNU++98、GNU++11、GNU++14、GNU++17。</p>
+<table>
+<thead>
+<tr>
+<th>GCC</th>
+<th><strong>C++98&#x2F;03</strong></th>
+<th><strong>C++11</strong></th>
+<th><strong>C++14</strong></th>
+<th>C++17</th>
+<th>GNU++98</th>
+<th>GNU++11</th>
+<th>GNU++14</th>
+<th>GNU++17</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>8.4-10.1</td>
+<td>c++98&#x2F;c++03</td>
+<td>c++11</td>
+<td>c++14</td>
+<td>c++17</td>
+<td>gnu++98&#x2F;gnu++03</td>
+<td>gnu++11</td>
+<td>gnu++14</td>
+<td>gnu++17</td>
+</tr>
+<tr>
+<td>5.5-7.5</td>
+<td>c++98&#x2F;c++03</td>
+<td>c++11</td>
+<td>c++14</td>
+<td>c++1z部分</td>
+<td>gnu++98&#x2F;gnu++03</td>
+<td>gnu++11</td>
+<td>gnu++14</td>
+<td>gnu++1z部分</td>
+</tr>
+<tr>
+<td>4.8.4~4.9.4</td>
+<td>c++98&#x2F;c++03</td>
+<td>c++11</td>
+<td>c++1y部分</td>
+<td></td>
+<td>gnu++98&#x2F;gnu++03</td>
+<td>gnu++11</td>
+<td>gnu++1y部分</td>
+<td></td>
+</tr>
+<tr>
+<td>4.7.4</td>
+<td>c++98</td>
+<td>c++11部分</td>
+<td></td>
+<td></td>
+<td>gnu++98</td>
+<td>gnu++11部分</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>4.6.4</td>
+<td>c++98</td>
+<td>c++0x部分</td>
+<td></td>
+<td></td>
+<td>gnu++98</td>
+<td>gnu++0x部分</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>4.5.4</td>
+<td>c++98</td>
+<td>c++0x部分</td>
+<td></td>
+<td></td>
+<td>gnu++98</td>
+<td>gnu++0x部分</td>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>
+<h2 id="安装的部分"><a href="#安装的部分" class="headerlink" title="安装的部分"></a>安装的部分</h2><table>
+<thead>
+<tr>
+<th>部分</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>c++</td>
+<td>gcc 的一个版木，默认语言设置为C++，而且在连接的时候自动包含标准 C++ 库。这和 g++ 一样</td>
+</tr>
+<tr>
+<td>ccl</td>
+<td>实际的C编译程序</td>
+</tr>
+<tr>
+<td>cclplus</td>
+<td>实际的 C++ 编泽程序</td>
+</tr>
+<tr>
+<td>collect2</td>
+<td>在不使用 GNU 连接程序的系统上，有必要运行 collect2 来产生特定的全局初始化代码（例如 C++ 的构造函数和析构函数）</td>
+</tr>
+<tr>
+<td>configure</td>
+<td>GCC 源代码树根目录中的一个脚木。用于设置配置值和创建GCC 编译程序必需的 make 程序的描述文件</td>
+</tr>
+<tr>
+<td>crt0.o</td>
+<td>这个初始化和结束代码是为每个系统定制的，而且也被编译进该文件，该文件然后会被连接到每个可执行文件中来执行必要的启动和终止程序</td>
+</tr>
+<tr>
+<td>cygwin1.dll</td>
+<td>Windows 的共享库提供的 API，模拟 UNIX 系统调用</td>
+</tr>
+<tr>
+<td>f77</td>
+<td>该驱动程序可用于编译 Fortran</td>
+</tr>
+<tr>
+<td>f771</td>
+<td>实际的 Fortran 编译程序</td>
+</tr>
+<tr>
+<td>g++</td>
+<td>gcc 的一个版木，默认语言设置为 C++，而且在连接的时候自动包含标准 C++ 库。这和 c++ 一样</td>
+</tr>
+<tr>
+<td>gcc</td>
+<td>该驱动程序等同于执行编译程序和连接程序以产生需要的输出</td>
+</tr>
+<tr>
+<td>gcj</td>
+<td>该驱动程序用于编译Java</td>
+</tr>
+<tr>
+<td>gnat1</td>
+<td>实际的 Ada 编译程序</td>
+</tr>
+<tr>
+<td>gnatbind</td>
+<td>一种工具，用于执行 Ada 语言绑定</td>
+</tr>
+<tr>
+<td>gnatlink</td>
+<td>一种工具，用于执行 Ada 语言连接</td>
+</tr>
+<tr>
+<td>jc1</td>
+<td>实际的 Java 编译程序</td>
+</tr>
+<tr>
+<td>libgcc</td>
+<td>该库包含的例程被作为编泽程序的一部分，是因为它们可被连接到实际的可执行程序中。 它们是特殊的例程，连接到可执行程序，来执行基木的任务，例如浮点运算。这些库中的例程通常都是平台相关的</td>
+</tr>
+<tr>
+<td>libgcj</td>
+<td>运行时库包含所有的核心 Java 类</td>
+</tr>
+<tr>
+<td>libobjc</td>
+<td>对所有 Objective-C 程序都必须的运行时库</td>
+</tr>
+<tr>
+<td>libstdc++</td>
+<td>运行时库，包括定义为标准语言一部分的所有的 C++ 类和函数</td>
+</tr>
+</tbody></table>
+<h2 id="安装的软件"><a href="#安装的软件" class="headerlink" title="安装的软件"></a>安装的软件</h2><table>
+<thead>
+<tr>
+<th>工具</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>addr2line</td>
+<td>给出一个可执行文件的内部地址，addr2line 使用文件中的调试信息将地址翻泽成源代码文 件名和行号。该程序是 binutils 包的一部分</td>
+</tr>
+<tr>
+<td>ar</td>
+<td>这是一个程序，可通过从文档中增加、删除和析取文件来维护库文件。通常使用该工具是为了创建和管理连接程序使用的目标库文档。该程序是 binutils 包的一部分</td>
+</tr>
+<tr>
+<td>as</td>
+<td>GNU 汇编器。实际上它是一族汇编器，因为它可以被编泽或能够在各种不同平台上工作。 该程序是 binutils 包的一部分</td>
+</tr>
+<tr>
+<td>autoconf</td>
+<td>产生的 shell 脚木自动配置源代码包去编泽某个特定版木的 UNIX</td>
+</tr>
+<tr>
+<td>c++filt</td>
+<td>程序接受被 C++ 编泽程序转换过的名字（不是被重载的），而且将该名字翻泽成初始形式。 该程序是 binutils 包的一部分</td>
+</tr>
+<tr>
+<td>f2c</td>
+<td>是 Fortran 到C的翻译程序。不是 GCC 的一部分</td>
+</tr>
+<tr>
+<td>gcov</td>
+<td>gprof 使用的配置工具，用来确定程序运行的时候哪一部分耗时最大</td>
+</tr>
+<tr>
+<td>gdb</td>
+<td>GNU 调试器，可用于检查程序运行时的值和行为</td>
+</tr>
+<tr>
+<td>GNATS</td>
+<td>GNU 的调试跟踪系统（GNU Bug Tracking System）。一个跟踪 GCC 和其他 GNU 软件问题的在线系统</td>
+</tr>
+<tr>
+<td>gprof</td>
+<td>该程序会监督编泽程序的执行过程，并报告程序中各个函数的运行时间，可以根据所提供 的配置文件来优化程序。该程序是 binutils 包的一部分</td>
+</tr>
+<tr>
+<td>ld</td>
+<td>GNU 连接程序。该程序将目标文件的集合组合成可执行程序。该程序是 binutils 包的一部</td>
+</tr>
+<tr>
+<td>libtool</td>
+<td>一个基本库，支持 make 程序的描述文件使用的简化共享库用法的脚木</td>
+</tr>
+<tr>
+<td>make</td>
+<td>一个工具程序，它会读 makefile 脚木来确定程序中的哪个部分需要编泽和连接，然后发布 必要的命令。它读出的脚木（叫做 makefile 或 Makefile）定义了文件关系和依赖关系</td>
+</tr>
+<tr>
+<td>nlmconv</td>
+<td>将可重定位的目标文件转换成 NetWare 可加载模块（NetWare Loadable Module, NLM）。该 程序是 binutils 的一部分</td>
+</tr>
+<tr>
+<td>nm</td>
+<td>列出目标文件中定义的符号。该程序是 binutils 包的一部分</td>
+</tr>
+<tr>
+<td>objcopy</td>
+<td>将目标文件从一种二进制格式复制和翻译到另外一种。该程序是 binutils 包的一部分</td>
+</tr>
+<tr>
+<td>objdump</td>
+<td>显示一个或多个目标文件中保存的多种不同信息。该程序是 binutils 包的一部分</td>
+</tr>
+<tr>
+<td>ranlib</td>
+<td>创建和添加到 ar 文档的索引。该索引被 Id 使用来定位库中的模块。该程序是 binutils 包的一部分</td>
+</tr>
+<tr>
+<td>ratfor</td>
+<td>Ratfor 预处理程序可由 GCC 激活，但不是标准 GCC 发布版的一部分</td>
+</tr>
+<tr>
+<td>readelf</td>
+<td>从 ELF 格式的目标文件显示信息。该程序是 binutils 包的一部分</td>
+</tr>
+<tr>
+<td>size</td>
+<td>列出目标文件中每个部分的名字和尺寸。该程序是 binutils 包的一部分</td>
+</tr>
+<tr>
+<td>strings</td>
+<td>浏览所有类型的文件，析取出用于显示的字符串。该程序是 binutils 包的一部分</td>
+</tr>
+<tr>
+<td>strip</td>
+<td>从目标文件或文档库中去掉符号表，以及其他调试所需的信息。该程序是 binutils 包的一部</td>
+</tr>
+<tr>
+<td>vcg</td>
+<td>Ratfor 浏览器从文木文件中读取信息，并以图表形式显示它们。而 vcg 工具并不是 GCC 发布中的一部分，但 -dv 选项可被用来产生 vcg 可以理解的优化数据的格式</td>
+</tr>
+<tr>
+<td>windres</td>
+<td>Window 资源文件编泽程序。该程序是 binutils 包的一部分</td>
+</tr>
+</tbody></table>
+<h1 id="GCC实验"><a href="#GCC实验" class="headerlink" title="GCC实验"></a>GCC实验</h1><p>从源代码转变为可执行代码的过程，具体可分为 4 个过程：预处理、编译、汇编和链接。</p>
+<h2 id="预处理"><a href="#预处理" class="headerlink" title="预处理"></a>预处理</h2><p>预处理操作，主要是处理那些源文件和头文件中以#开头的命令（比如 #include、#define、#ifdef 等），并删除程序中所有的注释。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//hello.c</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span><span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">void</span>)</span>&#123;</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;hello world!\n&quot;</span>);</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">执行命令, 生成hello.i文件</span><br><span class="line">gcc -E hello.c -o hello.i</span><br><span class="line">或者执行命令, 生成hello.i文件</span><br><span class="line">gcc -E -C hello.c -o hello.i</span><br></pre></td></tr></table></figure>
+
+
+
+<table>
+<thead>
+<tr>
+<th>gcc -E 常用选项选 项</th>
+<th>功 能</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>-D name[&#x3D;definition]</td>
+<td>在处理源文件之前，先定义宏 name。宏name必须是在源文件和头文件中都没有被定义过的。将该选项搭配源代码中的#ifdef name命令使用，可以实现条件式编译。如果没有指定一个替换的值（即省略 &#x3D;definition），该宏被定义为值 1。</td>
+</tr>
+<tr>
+<td>-U name</td>
+<td>如果在命令行或 GCC 默认设置中定义过宏name，则<strong>取消</strong>name 的定义。-D 和 -U 选项会依据在命令行中出现的先后顺序进行处理。</td>
+</tr>
+<tr>
+<td>-include file</td>
+<td>如同在源代码中添加 #include <strong>file</strong> 一样。</td>
+</tr>
+<tr>
+<td>-iquote dir</td>
+<td>对于以引号（#include “”）导入的头文件中，-iquote 指令可以指定该头文件的搜索路径。当GCC在源程序所在目录下找不到此头文件时，就会去-iquote指令指定的目录中查找。</td>
+</tr>
+<tr>
+<td>-I dir</td>
+<td>同时适用于以引号 “” 和 &lt;&gt; 导入的头文件。当GCC在-iquote 指令指定的目录下搜索头文件失败时，会再自动去 -I 指定的目录中查找。该选项在 GCC10.1版本中已被弃用，并建议用 -iquote 选项代替。</td>
+</tr>
+<tr>
+<td>-isystem dir</td>
+<td>用于指定搜索头文件的目录，适用于以引号 “” 和 &lt;&gt; 导入的头文件。</td>
+</tr>
+<tr>
+<td>-idirafter dir</td>
+<td>用于指定搜索头文件的目录，适用于以引号 “” 和 &lt;&gt; 导入的头文件。</td>
+</tr>
+</tbody></table>
+<p>其中，对于指定 #include 搜索路径的几个选项，作用的先后顺序如下：</p>
+<ul>
+<li>对于用 #include “” 引号形式引入的头文件，首先搜索当前程序文件所在的目录，其次再前往 -iquote 选项指定的目录中查找；</li>
+<li>前往 -I 选项指定的目录中搜索；</li>
+<li>前往 -isystem 选项指定的目录中搜索；</li>
+<li>前往默认的系统路径下搜索；</li>
+<li>前往 -idirafter 选项指定的目录中搜索。</li>
+</ul>
+<h2 id="编译"><a href="#编译" class="headerlink" title="编译"></a>编译</h2><p>对已得到的预处理文件进行编译，将其再加工为相应的汇编文件。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">//hello.c</span><br><span class="line">#include&lt;stdio.h&gt;</span><br><span class="line">int main(void)&#123;</span><br><span class="line">	printf(&quot;hello world!\n&quot;);</span><br><span class="line">	return 0;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">汇编命令,生成hello.s文件,GCC编译器只需编译此文件</span><br><span class="line">gcc -S hello.i</span><br><span class="line"></span><br><span class="line">汇编命令,生成hello.s文件,GCC编译器进行预处理和编译这2步操作</span><br><span class="line">gcc -S hello.c</span><br><span class="line"></span><br><span class="line">-fverbose-asm选项提高汇编代码的可读性</span><br><span class="line">gcc -S hello.c -fverbose-asm</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h2 id="汇编"><a href="#汇编" class="headerlink" title="汇编"></a>汇编</h2><p>汇编其实就是将汇编代码转换成可以执行的机器指令。大部分汇编语句对应一条机器指令，有的汇编语句对应多条机器指令。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//hello.c</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span><span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">void</span>)</span>&#123;</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;hello world!\n&quot;</span>);</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">汇编命令，生成hello.o文件，执行汇编这<span class="number">1</span>步操作</span><br><span class="line">gcc -i hello.i</span><br><span class="line"></span><br><span class="line">汇编命令，生成hello.o文件，执行编译以及汇编这<span class="number">2</span>步操作</span><br><span class="line">gcc -c hello.s</span><br><span class="line"></span><br><span class="line">汇编命令，生成hello.o文件，执行预处理、编译以及汇编这 <span class="number">3</span> 步操作</span><br><span class="line">gcc -c hello.c</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="链接"><a href="#链接" class="headerlink" title="链接"></a>链接</h2><p>链接：把多个二进制的目标文件（object file）链接成一个单独的可执行文件。GCC的<code>-l</code>选项可以让我们手动添加链接库。</p>
+<p>标准库的大部分函数通常放在文件 libc.a中，或者放在用于共享的动态链接文件libc.so中，当使用GCC编译和链接程序时，GCC默认会链接 libc.a或者libc.so。</p>
+<p>对于其他的库（例如非标准库、第三方库等），链接时需要手动添加。</p>
+<p>另外，标准头文件math.h对应的数学库默认不会被链接，数学库的文件名是libm.a或libm.so，前缀<code>lib</code>和后缀<code>.a</code>或<code>.so</code>是标准的，<code>m</code>是基本名。</p>
+<blockquote>
+<p>GCC会在<code>-l</code>选项后紧跟着的基本名称的基础上自动添加这些前缀、后缀</p>
+</blockquote>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//cos.c</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;math.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PI 3.14</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span> <span class="params">()</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">double</span> param, result;</span><br><span class="line">    param = <span class="number">60.0</span>;</span><br><span class="line">    result = <span class="built_in">cos</span> ( param * PI / <span class="number">180.0</span> );</span><br><span class="line">    <span class="built_in">printf</span> (<span class="string">&quot;The cos of %f degrees is %f.\n&quot;</span>, param, result );</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">#执行报错，undefined reference to `<span class="built_in">cos</span><span class="number">&#x27;</span></span><br><span class="line">gcc <span class="built_in">cos</span>.c</span><br><span class="line"></span><br><span class="line">#使用-l选项链接数学库,数学库的文件名是libm.a</span><br><span class="line">gcc <span class="built_in">cos</span>.c -o <span class="built_in">cos</span>.out -lm</span><br><span class="line"></span><br><span class="line">  </span><br></pre></td></tr></table></figure>
+
+
+
+<p>链接其它目录中的库</p>
+<ul>
+<li><p>把链接库作为一般的目标文件，为GCC指定链接库的完整路径与文件名 gcc </p>
+<blockquote>
+<p>libm.so在不同系统下文件位置可能不同，例如:</p>
+<p> gcc cos.c &#x2F;usr&#x2F;lib&#x2F;x86_64-linux-gnu&#x2F;libm.so</p>
+</blockquote>
+</li>
+<li><p>使用<code>-L</code>选项，为GCC增加搜索链接库的目录。可以使用多个<code>-L</code>选项，或者在一个<code>-L</code>选项内使用冒号分割的路径列表。</p>
+<blockquote>
+<p>libm.so在不同系统下文件位置可能不同，例如:</p>
+<p>gcc cos.c -o main.out -L&#x2F;usr&#x2F;lib&#x2F;x86_64-linux-gnu -lm</p>
+</blockquote>
+</li>
+<li><p>把包括所需链接库的目录加到环境变量LIBRARYPATH中。</p>
+</li>
+</ul>
+<h2 id="静态库"><a href="#静态库" class="headerlink" title="静态库"></a>静态库</h2><p>生成静态库或者将一个obj文件加入到静态库，命令是”ar 库文件 obj文件1 obj文件2”</p>
+<p>帮助命令: ar –help</p>
+<blockquote>
+<p>例如: 将string.打包为库文件libstr.a</p>
+<p>$ar -rcs libstr.a string.o</p>
+</blockquote>
+<h2 id="共享的动态库"><a href="#共享的动态库" class="headerlink" title="共享的动态库"></a>共享的动态库</h2><blockquote>
+<p>生成共享库</p>
+<p>标准格式: gcc -shared -Wl,-soname,your_soname -o library_name file_list library_list</p>
+</blockquote>
+<h1 id="cmake构建"><a href="#cmake构建" class="headerlink" title="cmake构建"></a>cmake构建</h1><h2 id="常见的构建方式"><a href="#常见的构建方式" class="headerlink" title="常见的构建方式"></a>常见的构建方式</h2><p><a target="_blank" rel="noopener" href="https://github.com/agui93/agui93-moonlight/tree/master/cmake-tutorials">agui93-cmake-tutorials</a>  </p>
+<p>todo 补充cmake生成库的构建样例</p>
+<h1 id="make"><a href="#make" class="headerlink" title="make"></a>make</h1><p>按照一个项目工程,集成make特性。项目地址：<a target="_blank" rel="noopener" href="https://github.com/agui93/agui93-moonlight/tree/master/make-experiments">agui93-make-experiments</a> </p>
+<table>
+<thead>
+<tr>
+<th>目录</th>
+<th>功能   集成的特性</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>step1</td>
+<td>使用shell脚本 按步骤编译</td>
+</tr>
+<tr>
+<td>step2</td>
+<td>使用shell脚本 整体编译</td>
+</tr>
+<tr>
+<td>step3</td>
+<td>make  简单规则</td>
+</tr>
+<tr>
+<td>step4</td>
+<td>make 自定义变量 预定义变量 模式匹配</td>
+</tr>
+<tr>
+<td>step5</td>
+<td>make 搜索路径</td>
+</tr>
+<tr>
+<td>step6</td>
+<td>make 自动推导规则</td>
+</tr>
+<tr>
+<td>step7</td>
+<td>make 递归</td>
+</tr>
+</tbody></table>
+<h2 id="规则"><a href="#规则" class="headerlink" title="规则"></a>规则</h2><p>make命令执行时先在Makefile文件中查找各种规则，对各种规则进行解析后运行规则。</p>
+<p>规则的基本格式</p>
+<figure class="highlight make"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">targets: prerequisites</span></span><br><span class="line">   command</span><br><span class="line">   command</span><br><span class="line">   command</span><br></pre></td></tr></table></figure>
+
+
+
+<table>
+<thead>
+<tr>
+<th>规则中的元素</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>TARGET</td>
+<td>规则所定义的目标</td>
+</tr>
+<tr>
+<td>DEPENDEDS</td>
+<td>执行此规则所必须的依赖条件</td>
+</tr>
+<tr>
+<td>COMMAND</td>
+<td>规则所执行的命令，即规则的动作</td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th>规则元素</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>目标</strong></td>
+<td>目标可以是具体的文件，也可以是某个动作</td>
+</tr>
+<tr>
+<td><strong>依赖项</strong></td>
+<td>依赖项是目标生成所必须满足的条件，即依赖项的动作必须在TARGET的命令之前执行。<br/>依赖项之间的顺序按照自左向右的顺序检查或者执行</td>
+</tr>
+<tr>
+<td><strong>命令</strong></td>
+<td>命令行必须以Tab键开始，make程序把出现在一条规则之后的所有连续的以Tab键开始的行都作为命令行处理</td>
+</tr>
+<tr>
+<td><strong>反斜杠(\)</strong></td>
+<td>用反斜杠(\)将较长的行分解为多行。</td>
+</tr>
+<tr>
+<td><strong>规则的嵌套</strong></td>
+<td>规则之间是可以嵌套的，通常通过依赖项实现</td>
+</tr>
+<tr>
+<td><strong>文件的时间戳</strong></td>
+<td>make命令执行的时候会根据文件的时间戳判定是否执行相关的命令，并且执行依赖于此项的规则。</td>
+</tr>
+<tr>
+<td><strong>模式匹配</strong></td>
+<td>%符号   *符号</td>
+</tr>
+</tbody></table>
+<h2 id="预定义变量"><a href="#预定义变量" class="headerlink" title="预定义变量"></a>预定义变量</h2><table>
+<thead>
+<tr>
+<th>变量</th>
+<th>含义</th>
+<th>默认值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>AR</td>
+<td>生成静态库库文件的程序名称</td>
+<td>ar</td>
+</tr>
+<tr>
+<td>AS</td>
+<td>汇编编译器的名称</td>
+<td>as</td>
+</tr>
+<tr>
+<td>CC</td>
+<td>C语言编译器名称</td>
+<td>cc</td>
+</tr>
+<tr>
+<td>CPP</td>
+<td>C语言预编译器的名称</td>
+<td>${CC} -E</td>
+</tr>
+<tr>
+<td>CXX</td>
+<td>C++语言编译器名称</td>
+<td>g++</td>
+</tr>
+<tr>
+<td>FC</td>
+<td>FORTRAN语言编译器的名称</td>
+<td>f77</td>
+</tr>
+<tr>
+<td>RM</td>
+<td>删除程序文件的名称</td>
+<td>rm -f</td>
+</tr>
+<tr>
+<td>ARFLAGS</td>
+<td>生成静态库库文件程序的选项</td>
+<td>无默认值</td>
+</tr>
+<tr>
+<td>ASFLAGS</td>
+<td>汇编语言编译器的编译选项</td>
+<td>无默认值</td>
+</tr>
+<tr>
+<td>CFLAGS</td>
+<td>C语言编译器的编译选项</td>
+<td>无默认值</td>
+</tr>
+<tr>
+<td>CPPFLAGS</td>
+<td>C语言预编译的编译选项</td>
+<td>无默认值</td>
+</tr>
+<tr>
+<td>CXXFLAGS</td>
+<td>C++语言编译器的编译选项</td>
+<td>无默认值</td>
+</tr>
+<tr>
+<td>FFLAGS</td>
+<td>FORTRAN语言编译器的编译选项</td>
+<td>无默认值</td>
+</tr>
+</tbody></table>
+<h2 id="自动变量"><a href="#自动变量" class="headerlink" title="自动变量"></a>自动变量</h2><table>
+<thead>
+<tr>
+<th>变量</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>$*</td>
+<td>表示目标文件的名称，不包含目标文件的扩展名</td>
+</tr>
+<tr>
+<td>$+</td>
+<td>表示所有的依赖条件，这些依赖条件直接以<strong>空格</strong>分开，按照出现的先后为<strong>顺序</strong>,其中可能包含重复的依赖条件</td>
+</tr>
+<tr>
+<td>$&lt;</td>
+<td>表示依赖项中第一个依赖文件的名称</td>
+</tr>
+<tr>
+<td>$?</td>
+<td>依赖项中，所有目标文件时间戳晚的依赖文件，依赖文件之间以空格分开</td>
+</tr>
+<tr>
+<td>$@</td>
+<td>目标项中目标文件的名称</td>
+</tr>
+<tr>
+<td>$^</td>
+<td>依赖项中，所有不重复的依赖条件，这些文件之间以空格分开</td>
+</tr>
+</tbody></table>
+<h2 id="模式匹配"><a href="#模式匹配" class="headerlink" title="模式匹配"></a>模式匹配</h2><figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">targets ...: target-pattern: prereq-patterns ...</span><br><span class="line">   commands</span><br></pre></td></tr></table></figure>
+
+
+
+<p>The essence is that the given target is matched by the target-pattern (via a <code>%</code> wildcard). Whatever was matched is called the <em>stem</em>. The stem is then substituted into the prereq-pattern, to generate the target’s prereqs.</p>
+<p>演示:</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">objects = foo.o bar.o all.o</span><br><span class="line"><span class="section">all: <span class="variable">$(objects)</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment"># These files compile via implicit rules</span></span><br><span class="line"><span class="comment"># Syntax - targets ...: target-pattern: prereq-patterns ...</span></span><br><span class="line"><span class="comment"># In the case of the first target, foo.o, the target-pattern matches foo.o and sets the &quot;stem&quot; to be &quot;foo&quot;.</span></span><br><span class="line"><span class="comment"># It then replaces the &#x27;%&#x27; in prereq-patterns with that stem</span></span><br><span class="line"><span class="variable">$(objects)</span>: %.o: %.c</span><br><span class="line"></span><br><span class="line"><span class="section">all.c:</span></span><br><span class="line">    echo <span class="string">&quot;int main() &#123; return 0; &#125;&quot;</span> &gt; all.c</span><br><span class="line"></span><br><span class="line"><span class="section">%.c:</span></span><br><span class="line">    touch <span class="variable">$@</span></span><br><span class="line"></span><br><span class="line"><span class="section">clean:</span></span><br><span class="line">    rm -f *.c *.o all</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h2 id="搜索路径"><a href="#搜索路径" class="headerlink" title="搜索路径"></a>搜索路径</h2><figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">vpath</span> &lt;pattern&gt; &lt;directories, space/colon separated&gt;</span><br></pre></td></tr></table></figure>
+
+<p>或者</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vpath = path1:path2:.</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h2 id="自动推导规则"><a href="#自动推导规则" class="headerlink" title="自动推导规则"></a>自动推导规则</h2><p>Perhaps the most confusing part of make is the magic rules and variables that are made. Here’s a list of implicit rules:</p>
+<ul>
+<li>Compiling a C program: <code>n.o</code> is made automatically from <code>n.c</code> with a command of the form <code>$(CC) -c $(CPPFLAGS) $(CFLAGS)</code></li>
+<li>Compiling a C++ program: <code>n.o</code> is made automatically from <code>n.cc</code> or <code>n.cpp</code> with a command of the form <code>$(CXX) -c $(CPPFLAGS) $(CXXFLAGS)</code></li>
+<li>Linking a single object file: <code>n</code> is made automatically from <code>n.o</code> by running the command <code>$(CC) $(LDFLAGS) n.o $(LOADLIBES) $(LDLIBS)</code></li>
+</ul>
+<p>the important variables used by implicit rules are:</p>
+<ul>
+<li><code>CC</code>: Program for compiling C programs; default cc</li>
+<li><code>CXX</code>: Program for compiling C++ programs; default G++</li>
+<li><code>CFLAGS</code>: Extra flags to give to the C compiler</li>
+<li><code>CXXFLAGS</code>: Extra flags to give to the C++ compiler</li>
+<li><code>CPPFLAGS</code>: Extra flags to give to the C preprocessor</li>
+<li><code>LDFLAGS</code>: Extra flags to give to compilers when they are supposed to invoke the linker</li>
+</ul>
+<p>演示:</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">CC = gcc <span class="comment"># Flag for implicit rules</span></span><br><span class="line">CFLAGS = -g <span class="comment"># Flag for implicit rules. Turn on debug info</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Implicit rule #1: blah is built via the C linker implicit rule</span></span><br><span class="line"><span class="comment"># Implicit rule #2: blah.o is built via the C compilation implicit rule, because blah.c exists</span></span><br><span class="line"><span class="section">blah: blah.o</span></span><br><span class="line"></span><br><span class="line"><span class="section">blah.c:</span></span><br><span class="line">    echo <span class="string">&quot;int main() &#123; return 0; &#125;&quot;</span> &gt; blah.c</span><br><span class="line"></span><br><span class="line"><span class="section">clean:</span></span><br><span class="line">    rm -f blah*</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h2 id="make递归"><a href="#make递归" class="headerlink" title="make递归"></a>make递归</h2><p>To recursively call a makefile, use the special <code>$(MAKE)</code> instead of <code>make</code> because it will pass the make flags for you and won’t itself be affected by them.</p>
+<p>The export directive takes a variable and makes it accessible to sub-make commands. </p>
+<h2 id="make中的函数"><a href="#make中的函数" class="headerlink" title="make中的函数"></a>make中的函数</h2><p>获取匹配模式的文件名</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$(wilcard PATTERN)</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>模式替换</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$(<span class="built_in">patsubst</span> pattern,replacement,text)</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>循环函数</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$(<span class="built_in">foreach</span> VAR,LIST,TEXT)</span></span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+<h1 id="gdb"><a href="#gdb" class="headerlink" title="gdb"></a>gdb</h1><h2 id="gdb命令"><a href="#gdb命令" class="headerlink" title="gdb命令"></a>gdb命令</h2><p><img src="/flame/images/c-language/gdb-commands-help.png" alt="gdb-命令-help"></p>
+<h2 id="gdb待整理"><a href="#gdb待整理" class="headerlink" title="gdb待整理"></a>gdb待整理</h2><p><a target="_blank" rel="noopener" href="https://www.kancloud.cn/wizardforcel/gdb-tips-100/146708">https://www.kancloud.cn/wizardforcel/gdb-tips-100/146708</a></p>
+<p><strong>gdbinit</strong></p>
+<p><a target="_blank" rel="noopener" href="https://github.com/cyrus-and/gdb-dashboard">https://github.com/cyrus-and/gdb-dashboard</a> <a target="_blank" rel="noopener" href="https://www.helplib.com/GitHub/article_129194">https://www.helplib.com/GitHub/article_129194</a><br><a target="_blank" rel="noopener" href="https://www.cntofu.com/book/46/gdb/gdb_dashboard_debug_info_at_a_glance.md">https://www.cntofu.com/book/46/gdb/gdb_dashboard_debug_info_at_a_glance.md</a> <a target="_blank" rel="noopener" href="https://www.helplib.com/GitHub/article_129194">https://www.helplib.com/GitHub/article_129194</a></p>
+<p><a target="_blank" rel="noopener" href="https://github.com/gdbinit/Gdbinit">https://github.com/gdbinit/Gdbinit</a></p>
+<p><a target="_blank" rel="noopener" href="https://github.com/longld/peda">https://github.com/longld/peda</a></p>
+<p><a target="_blank" rel="noopener" href="https://github.com/hugsy/gef">https://github.com/hugsy/gef</a></p>
+<p>堆栈查看; 汇编含义的解读; 寄存器查看; memeory查看</p>
+<h1 id="reference"><a href="#reference" class="headerlink" title="reference"></a>reference</h1><p>《c和指针》</p>
+<p>《LINUX网络编程第2版》</p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/jinking01/article/details/121235879">Linux动态链接库的创建与使用</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cprogramming.com/tutorial/shared-libraries-linux-gcc.html">Shared libraries with GCC on Linux</a></p>
+<p><a target="_blank" rel="noopener" href="http://c.biancheng.net/view/679.html">GCC的组成</a></p>
+<p><a target="_blank" rel="noopener" href="http://c.biancheng.net/view/2382.html">手动添加链接库</a></p>
+<p><a target="_blank" rel="noopener" href="https://cmake.org/cmake/help/git-stage/guide/tutorial/index.html">CMake Tutorial</a></p>
+<p><a target="_blank" rel="noopener" href="https://github.com/Kitware/CMake/tree/master/Help/guide/tutorial">CMake Tutorial Guide</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/52php/p/5681745.html">CMake实践笔记</a></p>
+<p><a target="_blank" rel="noopener" href="https://makefiletutorial.com/#top">makefile tutorial</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cs.colby.edu/maxwell/courses/tutorials/maketutor/">maketutor</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.tutorialspoint.com/makefile/">make tutorialspoint</a><br><a target="_blank" rel="noopener" href="https://www.gnu.org/software/make/manual/html_node/index.html#toc-An-Introduction-to-Makefiles">gnu make</a></p>
+<p><a target="_blank" rel="noopener" href="https://gcc.gnu.org/onlinedocs/">gcc onlinedocs</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/flame/tags/c/" rel="tag"># c</a>
+              <a href="/flame/tags/tools/" rel="tag"># tools</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/flame/2021/11/10/redis/redis/" rel="prev" title="Redis">
+      <i class="fa fa-chevron-left"></i> Redis
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/flame/2021/11/15/c-language/c-development-env/" rel="next" title="c项目开发环境-基于docker和clion">
+      c项目开发环境-基于docker和clion <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%89%8D%E8%A8%80"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E7%BC%96%E8%AF%91%E8%BF%87%E7%A8%8B"><span class="nav-number">2.</span> <span class="nav-text">编译过程</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%96%87%E4%BB%B6%E5%90%8D%E7%A7%B0"><span class="nav-number">2.1.</span> <span class="nav-text">文件名称</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%B7%E4%BD%93%E8%BF%87%E7%A8%8B"><span class="nav-number">2.2.</span> <span class="nav-text">具体过程</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%87%BD%E6%95%B0%E5%BA%93"><span class="nav-number">3.</span> <span class="nav-text">函数库</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%9D%99%E6%80%81%E9%93%BE%E6%8E%A5%E5%BA%93"><span class="nav-number">3.1.</span> <span class="nav-text">静态链接库</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%B1%E4%BA%AB%E5%87%BD%E6%95%B0%E5%BA%93"><span class="nav-number">3.2.</span> <span class="nav-text">共享函数库</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%91%BD%E5%90%8D"><span class="nav-number">3.2.1.</span> <span class="nav-text">命名</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%96%87%E4%BB%B6%E4%BD%8D%E7%BD%AE"><span class="nav-number">3.2.2.</span> <span class="nav-text">文件位置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8"><span class="nav-number">3.2.3.</span> <span class="nav-text">如何使用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA"><span class="nav-number">3.2.4.</span> <span class="nav-text">创建</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%89%E8%A3%85"><span class="nav-number">3.2.5.</span> <span class="nav-text">安装</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%BC%E5%AE%B9"><span class="nav-number">3.2.6.</span> <span class="nav-text">兼容</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8A%A8%E6%80%81%E5%8A%A0%E8%BD%BD%E5%87%BD%E6%95%B0%E5%BA%93"><span class="nav-number">3.3.</span> <span class="nav-text">动态加载函数库</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ldconfig%E5%91%BD%E4%BB%A4"><span class="nav-number">3.4.</span> <span class="nav-text">ldconfig命令</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#GCC"><span class="nav-number">4.</span> <span class="nav-text">GCC</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BC%96%E8%AF%91%E5%99%A8"><span class="nav-number">4.1.</span> <span class="nav-text">编译器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%96%87%E4%BB%B6%E6%89%A9%E5%B1%95%E5%90%8D"><span class="nav-number">4.2.</span> <span class="nav-text">文件扩展名</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%B8%E7%94%A8%E7%9A%84%E7%BC%96%E8%AF%91%E9%80%89%E9%A1%B9"><span class="nav-number">4.3.</span> <span class="nav-text">常用的编译选项</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BC%96%E8%AF%91%E6%A0%87%E5%87%86"><span class="nav-number">4.4.</span> <span class="nav-text">编译标准</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#C%E8%AF%AD%E8%A8%80%E6%A0%87%E5%87%86"><span class="nav-number">4.4.1.</span> <span class="nav-text">C语言标准</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#C-%E6%A0%87%E5%87%86"><span class="nav-number">4.4.2.</span> <span class="nav-text">C++标准</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%89%E8%A3%85%E7%9A%84%E9%83%A8%E5%88%86"><span class="nav-number">4.5.</span> <span class="nav-text">安装的部分</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%89%E8%A3%85%E7%9A%84%E8%BD%AF%E4%BB%B6"><span class="nav-number">4.6.</span> <span class="nav-text">安装的软件</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#GCC%E5%AE%9E%E9%AA%8C"><span class="nav-number">5.</span> <span class="nav-text">GCC实验</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%A2%84%E5%A4%84%E7%90%86"><span class="nav-number">5.1.</span> <span class="nav-text">预处理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BC%96%E8%AF%91"><span class="nav-number">5.2.</span> <span class="nav-text">编译</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B1%87%E7%BC%96"><span class="nav-number">5.3.</span> <span class="nav-text">汇编</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%93%BE%E6%8E%A5"><span class="nav-number">5.4.</span> <span class="nav-text">链接</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%9D%99%E6%80%81%E5%BA%93"><span class="nav-number">5.5.</span> <span class="nav-text">静态库</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%B1%E4%BA%AB%E7%9A%84%E5%8A%A8%E6%80%81%E5%BA%93"><span class="nav-number">5.6.</span> <span class="nav-text">共享的动态库</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#cmake%E6%9E%84%E5%BB%BA"><span class="nav-number">6.</span> <span class="nav-text">cmake构建</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%B8%E8%A7%81%E7%9A%84%E6%9E%84%E5%BB%BA%E6%96%B9%E5%BC%8F"><span class="nav-number">6.1.</span> <span class="nav-text">常见的构建方式</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#make"><span class="nav-number">7.</span> <span class="nav-text">make</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%A7%84%E5%88%99"><span class="nav-number">7.1.</span> <span class="nav-text">规则</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%A2%84%E5%AE%9A%E4%B9%89%E5%8F%98%E9%87%8F"><span class="nav-number">7.2.</span> <span class="nav-text">预定义变量</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%87%AA%E5%8A%A8%E5%8F%98%E9%87%8F"><span class="nav-number">7.3.</span> <span class="nav-text">自动变量</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A8%A1%E5%BC%8F%E5%8C%B9%E9%85%8D"><span class="nav-number">7.4.</span> <span class="nav-text">模式匹配</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%90%9C%E7%B4%A2%E8%B7%AF%E5%BE%84"><span class="nav-number">7.5.</span> <span class="nav-text">搜索路径</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%87%AA%E5%8A%A8%E6%8E%A8%E5%AF%BC%E8%A7%84%E5%88%99"><span class="nav-number">7.6.</span> <span class="nav-text">自动推导规则</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#make%E9%80%92%E5%BD%92"><span class="nav-number">7.7.</span> <span class="nav-text">make递归</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#make%E4%B8%AD%E7%9A%84%E5%87%BD%E6%95%B0"><span class="nav-number">7.8.</span> <span class="nav-text">make中的函数</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#gdb"><span class="nav-number">8.</span> <span class="nav-text">gdb</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#gdb%E5%91%BD%E4%BB%A4"><span class="nav-number">8.1.</span> <span class="nav-text">gdb命令</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#gdb%E5%BE%85%E6%95%B4%E7%90%86"><span class="nav-number">8.2.</span> <span class="nav-text">gdb待整理</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#reference"><span class="nav-number">9.</span> <span class="nav-text">reference</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="flame"
+      src="/flame/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">flame</p>
+  <div class="site-description" itemprop="description">读书百遍 其义自见</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/flame/archives/">
+        
+          <span class="site-state-item-count">22</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/flame/categories/">
+          
+        <span class="site-state-item-count">36</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/flame/tags/">
+          
+        <span class="site-state-item-count">22</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+      
+      <!--网易云音乐插件-->
+      <!-- require APlayer -->
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.css">
+      <script src="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.js"></script>
+      <!-- require MetingJS-->
+      <script src="https://cdn.jsdelivr.net/npm/meting@2.0.1/dist/Meting.min.js"></script>
+      <!--网易云playlist外链地址-->
+      <div style="margin-top: 20px;">
+        <meting-js
+            server="netease"
+            type="playlist"
+            id="427009153"
+            mini="false"
+            fixed="false"
+            list-folded="true"
+            autoplay="false"
+            volume="0.4"
+            theme="#FADFA3"
+            order="list"
+            loop="all"
+            preload="auto"
+            mutex="true">
+        </meting-js>
+      </div>
+
+    </div>
+
+
+
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">flame</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">150k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">2:16</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/flame/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/theme-next/theme-next-pjax@0/pjax.min.js"></script>
+  <script src="/flame/lib/velocity/velocity.min.js"></script>
+  <script src="/flame/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/flame/js/utils.js"></script>
+
+<script src="/flame/js/motion.js"></script>
+
+
+<script src="/flame/js/schemes/pisces.js"></script>
+
+
+<script src="/flame/js/next-boot.js"></script>
+
+<script src="/flame/js/bookmark.js"></script>
+
+  <script>
+var pjax = new Pjax({
+  selectors: [
+    'head title',
+    '#page-configurations',
+    '.content-wrap',
+    '.post-toc-wrap',
+    '.languages',
+    '#pjax'
+  ],
+  switches: {
+    '.post-toc-wrap': Pjax.switches.innerHTML
+  },
+  analytics: false,
+  cacheBust: false,
+  scrollTo : !CONFIG.bookmark.enable
+});
+
+window.addEventListener('pjax:success', () => {
+  document.querySelectorAll('script[data-pjax], script#page-configurations, #pjax script').forEach(element => {
+    var code = element.text || element.textContent || element.innerHTML || '';
+    var parent = element.parentNode;
+    parent.removeChild(element);
+    var script = document.createElement('script');
+    if (element.id) {
+      script.id = element.id;
+    }
+    if (element.className) {
+      script.className = element.className;
+    }
+    if (element.type) {
+      script.type = element.type;
+    }
+    if (element.src) {
+      script.src = element.src;
+      // Force synchronous loading of peripheral JS.
+      script.async = false;
+    }
+    if (element.dataset.pjax !== undefined) {
+      script.dataset.pjax = '';
+    }
+    if (code !== '') {
+      script.appendChild(document.createTextNode(code));
+    }
+    parent.appendChild(script);
+  });
+  NexT.boot.refresh();
+  // Define Motion Sequence & Bootstrap Motion.
+  if (CONFIG.motion.enable) {
+    NexT.motion.integrator
+      .init()
+      .add(NexT.motion.middleWares.subMenu)
+      .add(NexT.motion.middleWares.postList)
+      .bootstrap();
+  }
+  NexT.utils.updateSidebarPosition();
+});
+</script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/flame/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+<script data-pjax>
+if (document.querySelectorAll('pre.mermaid').length) {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mermaid@8/dist/mermaid.min.js', () => {
+    mermaid.initialize({
+      theme    : 'default',
+      logLevel : 3,
+      flowchart: { curve     : 'linear' },
+      gantt    : { axisFormat: '%m/%d/%Y' },
+      sequence : { actorMargin: 50 }
+    });
+  }, window.mermaid);
+}
+</script>
+
+
+    <div id="pjax">
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID    : 'ea4dd98148ad4427dc12',
+      clientSecret: '6b19239ab40d57eb79685e3e48fd6f0e54bc3b03',
+      repo        : 'flame',
+      owner       : 'flame-bcc',
+      admin       : ['agui93'],
+      id          : '9e9466be2c199f7de810ddae19c11c42',
+        language: 'zh-CN',
+      distractionFreeMode: false
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+    </div>
+</body>
+</html>
